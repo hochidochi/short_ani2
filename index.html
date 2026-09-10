@@ -135,6 +135,16 @@
   .rin:focus,.sin:focus{outline:2px solid var(--s-open);outline-offset:-1px}
   .tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
   .thint{font-size:12px;color:var(--muted)}
+  .syncchip{font-size:11px;padding:3px 9px;border-radius:999px;border:1px solid var(--ring);
+    color:var(--ink-2);background:var(--surface-1);white-space:nowrap}
+  .syncchip[data-s="on"]{border-color:color-mix(in srgb,var(--st-good) 60%,var(--ring));
+    background:color-mix(in srgb,var(--st-good) 12%,var(--surface-1))}
+  .syncchip[data-s="busy"]{border-color:color-mix(in srgb,var(--st-warn) 60%,var(--ring));
+    background:color-mix(in srgb,var(--st-warn) 16%,var(--surface-1))}
+  .syncchip[data-s="off"]{border-color:color-mix(in srgb,var(--st-warn) 60%,var(--ring));
+    background:color-mix(in srgb,var(--st-warn) 16%,var(--surface-1));color:var(--ink)}
+  .syncchip[data-s="err"]{border-color:color-mix(in srgb,var(--st-crit) 60%,var(--ring));
+    background:color-mix(in srgb,var(--st-crit) 14%,var(--surface-1))}
   .tin{font:inherit;font-size:12.5px;padding:3px 6px;border-radius:6px;border:1px solid var(--ring);
     background:var(--plane);color:var(--ink);width:150px}
   .din{width:56px;text-align:center;font-variant-numeric:tabular-nums}
@@ -176,6 +186,9 @@
   <label>런칭 시 오픈 회차 일괄
     <input id="opnAll" class="tin din" type="number" min="1" max="40" step="1" value="5">
   </label>
+  <label>더빙 배치 일괄
+    <input id="btcAll" class="tin din" type="number" min="1" max="40" step="1" value="5">
+  </label>
   <div class="ctl-sep"></div>
   <label>런칭 후 오픈 주기
     <select id="cad"><option value="1" selected>주 1회</option><option value="2">격주 1회</option><option value="0.5">주 2회</option></select>
@@ -201,7 +214,9 @@
   <span class="thint">흰 칸은 직접 수정할 수 있습니다 — 값을 바꾸면 더빙최종본·오픈회차·간트가 즉시 다시 계산됩니다.</span>
   <span style="flex:1"></span>
   <button class="btn" id="addW">+ 작품 추가</button>
-  <button class="btn" id="copyL">🔗 현재 상태 링크 복사</button>
+  <span class="syncchip" id="sync" title="공유 저장소 상태">…</span>
+  <button class="btn" id="pullB">↻ 다시 불러오기</button>
+  <button class="btn" id="copyL">🔗 링크 복사</button>
   <button class="btn" id="expJ">JSON 내보내기</button>
   <button class="btn" id="impJ">불러오기</button>
   <button class="btn" id="resetW">초기화</button>
@@ -216,6 +231,26 @@
 
 <script>
 /* ---------- 영업일 캘린더 (한국 공휴일 반영) ---------- */
+/* =======================================================================
+   공유 저장소 설정 — 아래 두 줄만 채우면 모든 사람이 같은 값을 보게 됩니다.
+   비워두면 예전처럼 '내 브라우저 + 링크 공유' 모드로 동작합니다.
+
+   Supabase SQL 편집기에서 한 번 실행:
+     create table if not exists anime_schedule_state (
+       id text primary key,
+       state jsonb not null,
+       updated_at timestamptz not null default now()
+     );
+     alter table anime_schedule_state enable row level security;
+     create policy "anon rw" on anime_schedule_state
+       for all to anon using (true) with check (true);
+   ======================================================================= */
+const SUPABASE_URL      = "";   // 예: https://abcdefgh.supabase.co
+const SUPABASE_ANON_KEY = "";   // Project Settings → API → anon public key
+const SB_TABLE = "anime_schedule_state";
+const SB_ROW   = "default";     // 보드를 여러 개 쓰려면 ?board=xxx 로 분리됩니다
+const SB_POLL_MS = 15000;       // 다른 사람 변경 확인 주기
+
 const HOL = new Set(["2026-09-24","2026-09-25","2026-09-28","2026-10-05","2026-10-09","2026-12-25",
 "2027-01-01","2027-02-08","2027-02-09","2027-02-10","2027-03-01","2027-05-05","2027-05-13",
 "2027-06-07","2027-08-16","2027-09-14","2027-09-15","2027-09-16","2027-10-04","2027-10-11","2027-12-27"]);
@@ -243,12 +278,12 @@ const MAXEP=40;
    기존작: 2026-09-10 시점 1차 영상 완료 회차 + 회차당 영업일
    신규작: 시트의 '신규 작품 5회차 영상 완료일(1주 버퍼 포함)' 기준 (해당 팀 슬롯)         */
 const DEFAULT_WORKS=[
- {n:"소녀바둑",       a:"작가 추해수",              agree:"동의 확보", done:6, rate:7, open:5, start:"2026-09-10", sHint:"7회차 진행 중"},
- {n:"냐한 남자",      a:"작가 김명진",              agree:"동의 확보", done:4, rate:7, open:5, start:"2026-09-10", sHint:"5회차 진행 중"},
- {n:"작두",          a:"작가 배종일 · 제작 신규/인턴", agree:"동의 확보", done:3, rate:6, open:5, start:"2026-11-01", sHint:"4회차 11/1 착수 예정"},
- {n:"살아남은 로맨스", a:"작가 김여은",              agree:"협의 중",  done:2, rate:9, open:5, start:"2026-09-10", sHint:"3회차 9/10 착수"},
- {n:"용사가 돌아왔다", a:"담당 최민",                agree:"동의 확보", done:1, rate:8, open:5, start:"2026-09-14", sHint:"2회차 9/14 착수", hint:"현재 8 / 목표 7"},
- {n:"나이트런",       a:"배종일 전담",              agree:"동의 확보", done:1, rate:9, open:5, start:"2026-09-14", sHint:"2회차 9/14 착수"},
+ {n:"소녀바둑",       a:"작가 추해수",              agree:"동의 확보", done:6, rate:7, open:5, batch:5, start:"2026-09-10", sHint:"7회차 진행 중"},
+ {n:"냐한 남자",      a:"작가 김명진",              agree:"동의 확보", done:4, rate:7, open:5, batch:5, start:"2026-09-10", sHint:"5회차 진행 중"},
+ {n:"작두",          a:"작가 배종일 · 제작 신규/인턴", agree:"동의 확보", done:3, rate:6, open:5, batch:5, start:"2026-11-01", sHint:"4회차 11/1 착수 예정"},
+ {n:"살아남은 로맨스", a:"작가 김여은",              agree:"협의 중",  done:2, rate:9, open:5, batch:5, start:"2026-09-10", sHint:"3회차 9/10 착수"},
+ {n:"용사가 돌아왔다", a:"담당 최민",                agree:"동의 확보", done:1, rate:8, open:5, batch:5, start:"2026-09-14", sHint:"2회차 9/14 착수", hint:"현재 8 / 목표 7"},
+ {n:"나이트런",       a:"배종일 전담",              agree:"동의 확보", done:1, rate:9, open:5, batch:5, start:"2026-09-14", sHint:"2회차 9/14 착수"},
 ];
 let WORKS = JSON.parse(JSON.stringify(DEFAULT_WORKS));
 const rateOf=(w)=>w.rate;
@@ -263,11 +298,13 @@ function weeks(endStr){
 
 /* ---------- 작품별 계산 ---------- */
 function compute(w,opt){
-  const rate=rateOf(w), K=Math.max(1,w.open||5); let st=startOf(w);
+  const rate=rateOf(w), K=Math.max(1,w.open||5), B=Math.max(1,w.batch||5);
+  const bLast=(k)=>Math.min(MAXEP, Math.ceil(k/B)*B);   // 해당 회차가 속한 배치의 마지막 회차
+  let st=startOf(w);
   while(st && !isBD(st)) st=addDays(st,1);      // 착수일이 주말·공휴일이면 다음 영업일로
   if(!st){                                   // 홀드 — 착수일 미정
     const need=(w.done>=K)?0:(K-w.done)*rate-1;
-    return {hold:true, rate, K, onTime:false, mode:"ai", lead:LEAD.ai,
+    return {hold:true, rate, K, B, onTime:false, mode:"ai", lead:LEAD.ai,
             deadHum: addBD(GATE.human,-need), deadAi: addBD(GATE.ai,-need),
             ep1:{}, dub:{}, launch:null};
   }
@@ -280,15 +317,17 @@ function compute(w,opt){
   let mode, onTime=true;
   if(opt.mode==="human") mode="human";
   else if(opt.mode==="ai") mode="ai";
-  else mode = (ep1[K]<=GATE.human) ? "human" : "ai";
-  if(ep1[K] > (mode==="human"?GATE.human:GATE.ai)) onTime=false;
+  else mode = (ep1[bLast(K)]<=GATE.human) ? "human" : "ai";
+  // 인간 성우는 배치로 묶어 발송 → 배치의 마지막 회차가 판정 기준
+  const gateEp = (mode==="human") ? bLast(K) : K;
+  if(ep1[gateEp] > (mode==="human"?GATE.human:GATE.ai)) onTime=false;
   const lead=LEAD[mode], dub={};
-  for(let k=1;k<=MAXEP;k++) dub[k]=addBD(ep1[k],lead);
+  for(let k=1;k<=MAXEP;k++) dub[k]=addBD(ep1[ mode==="human" ? bLast(k) : k ], lead);
   let launch;
   if(onTime) launch=LAUNCH;
   else{ let t=addBD(dub[K],5); while(t.getUTCDay()!==1) t=addDays(t,1); launch=t; }
-  const slack=bdBetween(ep1[K], mode==="human"?GATE.human:GATE.ai);
-  return {hold:false,rate,K,ep1,dub,mode,onTime,launch,lead,slack};
+  const slack=bdBetween(ep1[gateEp], mode==="human"?GATE.human:GATE.ai);
+  return {hold:false,rate,K,B,gateEp,ep1,dub,mode,onTime,launch,lead,slack};
 }
 
 function seriesFor(c,wks,opt,w){
@@ -427,8 +466,8 @@ function render(){
   document.getElementById("gantt").innerHTML=h;
 
   /* 요약표 */
-  let s=`<thead><tr><th>작품</th><th>작가 / 담당</th><th>완료<br>회차</th><th>다음 회차<br>착수일</th><th>회차당<br>영업일</th><th>오픈<br>회차</th>
-    <th>오픈분 1차 영상<br>완료일</th><th>게이트<br>여유</th><th>성우 방식</th><th>오픈분 더빙최종본<br>완료일</th>
+  let s=`<thead><tr><th>작품</th><th>작가 / 담당</th><th>완료<br>회차</th><th>다음 회차<br>착수일</th><th>회차당<br>영업일</th><th>오픈<br>회차</th><th>더빙<br>배치</th>
+    <th>판정 기준<br>1차 영상 완료일</th><th>게이트<br>여유</th><th>성우 방식</th><th>오픈분 더빙최종본<br>완료일</th>
     <th>런칭일</th><th>재고 소진 시점<br>(현재 주기)</th><th>지속 가능<br>연재 주기</th><th></th></tr></thead><tbody>`;
   rows.forEach(r=>{
     let shortIdx=null; r.s.open.forEach((o,i)=>{ if(o>0&&o>r.s.dubbed[i]&&shortIdx===null) shortIdx=i; });
@@ -442,13 +481,15 @@ function render(){
       <td><input class="sin ed" type="date" value="${r.w.start||""}" data-i="${i}" data-f="start">
           <div style="font-size:10px;color:var(--muted);margin-top:2px">${r.w.sHint||""}</div></td>
       <td><input class="tin din ed" type="number" min="1" max="30" step="1" value="${r.w.rate}" data-i="${i}" data-f="rate">${r.w.hint?`<div style="font-size:10px;color:var(--muted);margin-top:2px">${r.w.hint}</div>`:""}</td>
-      <td><input class="tin din ed" type="number" min="1" max="40" step="1" value="${r.w.open||5}" data-i="${i}" data-f="open"></td>`;
+      <td><input class="tin din ed" type="number" min="1" max="40" step="1" value="${r.w.open||5}" data-i="${i}" data-f="open"></td>
+      <td><input class="tin din ed" type="number" min="1" max="40" step="1" value="${r.w.batch||5}" data-i="${i}" data-f="batch"
+           title="인간 성우 배치 발송 단위 (AI 성우는 회차별 진행이라 영향 없음)"></td>`;
     if(r.c.hold){
-      s+=`<td colspan="6" style="color:var(--st-crit)"><b>착수 데드라인</b> — 인간 성우 ${fmtY(r.c.deadHum)} · AI 성우 ${fmtY(r.c.deadAi)}까지 착수해야 12/21 탑승</td>
+      s+=`<td colspan="7" style="color:var(--st-crit)"><b>착수 데드라인</b> — 인간 성우 ${fmtY(r.c.deadHum)} · AI 성우 ${fmtY(r.c.deadAi)}까지 착수해야 12/21 탑승</td>
           <td>—</td><td>${sustain}주 / 1회</td><td><button class="delb" data-del="${i}" title="삭제">✕</button></td></tr>`;
     }else{
       const sl=r.c.slack, slc = sl<0?"var(--st-crit)":(sl<=3?"var(--st-warn)":"var(--st-good)");
-      s+=`<td class="w">${fmtY(r.c.ep1[r.c.K])}</td>
+      s+=`<td class="w">${fmtY(r.c.ep1[r.c.gateEp])}<div style="font-size:10px;color:var(--muted);font-weight:400">${r.c.gateEp}회차${r.c.mode==="human"&&r.c.gateEp!==r.c.K?" (배치 마지막)":""}</div></td>
       <td style="color:${slc};font-weight:600">${sl>=0?`+${sl}`:sl}영업일</td>
       <td>${(r.c.mode==="human"?"인간 성우":"AI 성우")}${r.c.onTime?"":" · 순차 런칭"}</td>
       <td>${fmtY(r.c.dub[r.c.K])}</td><td class="w">${fmtY(r.c.launch)}</td>
@@ -460,8 +501,10 @@ function render(){
   document.getElementById("summary").innerHTML=s;
   document.querySelectorAll(".ed").forEach(el=>el.onchange=()=>{
     const w=WORKS[+el.dataset.i], f=el.dataset.f;
-    if(f==="done"||f==="rate"||f==="open"){ const v=parseInt(el.value,10); if(isNaN(v))return;
-      w[f]= f==="rate" ? Math.min(30,Math.max(1,v)) : (f==="open" ? Math.min(40,Math.max(1,v)) : Math.min(40,Math.max(0,v)));
+    if(f==="done"||f==="rate"||f==="open"||f==="batch"){ const v=parseInt(el.value,10); if(isNaN(v))return;
+      w[f]= f==="rate" ? Math.min(30,Math.max(1,v))
+          : (f==="open"||f==="batch") ? Math.min(40,Math.max(1,v))
+          : Math.min(40,Math.max(0,v));
       if(f==="done") w.sHint=`${w.done+1}회차 착수 기준`;
     } else { w[f]=el.value; }
     saveState(); render();
@@ -495,6 +538,8 @@ function render(){
    li(firstShort===null
       ? `현재 설정에서는 재고가 마르는 작품이 없습니다. 주기를 더 당기려면 상단 '오픈 주기'를 바꿔 소진 시점을 확인해 보세요.`
       : `가장 먼저 재고가 마르는 시점은 <b>${fmtY(wks[firstShort])} 주</b> — 이때부터 공개 주기를 늦추거나 제작 인력을 늘려야 합니다.`)+
+   ((()=>{const hr=rows.filter(r=>!r.c.hold&&r.c.mode==="human");
+      return hr.length?li(`<b>인간 성우 배치 도착</b> — ${hr.map(r=>`${r.w.n} 1~${r.c.B}회차 ${fmtY(r.c.dub[1])}`).join(" / ")}. 일본 스튜디오에 묶어 보내므로 같은 배치는 <b>같은 날 한꺼번에</b> 들어옵니다.`):"";})())+
    (holdLine?li(holdLine):"")+
    ((()=>{const tight=rows.filter(r=>!r.c.hold&&r.c.onTime&&r.c.slack<=3);
       return tight.length?li(`<b>게이트 여유 3영업일 이하</b>: ${tight.map(r=>`${r.w.n}(+${r.c.slack}영업일)`).join(", ")} — 한 회차만 밀려도 12/21에서 이탈합니다.`):"";})())+
@@ -503,7 +548,9 @@ function render(){
   /* 주석 */
   const gh=fmtY(addBD(LOCK,-LEAD.human)), ga=fmtY(addBD(LOCK,-LEAD.ai));
   document.getElementById("notes").innerHTML=`<ul>
-   <li><b>공정 리드타임</b> — 인간 성우 47영업일 / AI 성우 25영업일 중, 앞단 '영상·사운드 제작' 7영업일은 1차 영상 완료 시점에 이미 소진. 따라서 <b>1차 영상 완료 이후 잔여 공정 = 인간 40영업일 / AI 18영업일</b>로 계산했습니다.</li>
+   <li><b>공정 리드타임</b> — 인간 성우 47영업일 / AI 성우 25영업일 중, 앞단 '영상·사운드 제작' 7영업일은 1차 영상 완료 시점에 이미 소진. 따라서 <b>1차 영상 완료 이후 잔여 공정 = 인간 40영업일 / AI 18영업일</b>로 계산했습니다. 인간 성우의 40영업일 안에 일본 스튜디오 약 2개월(발송 → 녹음 → 믹싱본 회수)이 포함된 것으로 봤습니다.</li>
+   <li><b>인간 성우 = 배치 발송</b> — 회차를 모아 한 번에 일본 스튜디오로 보내므로, <b>같은 배치의 회차는 같은 날 한꺼번에 완성</b>됩니다. 배치의 마지막 회차 1차 영상이 끝나야 발송되니, 게이트 판정도 그 회차 기준입니다(요약표 '판정 기준' 칸). 예를 들어 오픈 5회차 · 배치 5회차면 5회차가 기준이고, 배치를 10회차로 키우면 10회차 1차 영상이 10/16 안에 들어와야 합니다. <b>AI 성우는 내부 제작이라 회차별로 순차 완성</b>돼 배치 설정의 영향을 받지 않습니다.</li>
+   <li><b>배치 크기의 효과</b> — 배치를 키우면 대기가 길어져 12/21 인간 성우 라인업이 줄고(배치 10회차면 0개), 배치를 줄이면 발송 횟수가 늘어나는 대신 회차가 빨리 풀립니다. 간트의 더빙최종본 줄이 계단식으로 뛰는 구간이 배치가 들어오는 시점입니다.</li>
    <li><b>게이트 검증</b> — 콘텐츠 확정 마감 12/14에서 역산하면 인간 성우 게이트 ${gh}, AI 성우 게이트 ${ga}. 슬랙에 공유된 10/16 · 11/17과 사실상 일치합니다(주말·공휴일 반영, 완료 익영업일 착수 기준).</li>
    <li><b>영업일 캘린더</b> — 월~금에서 한국 공휴일 제외(추석 9/24·25·28, 개천절 대체 10/5, 한글날 10/9, 성탄절 12/25 등). 착수일이 주말·공휴일이면 다음 영업일로 자동 이동합니다.</li>
    <li><b>회차 완료일 계산</b> — '다음 회차 착수일'부터 회차당 영업일만큼 진행해 그 회차를 완성하고, 이후 회차는 같은 속도로 이어붙입니다. 5회차 완료일이 게이트 안에 들어오면 12/21 탑승입니다.</li>
@@ -511,7 +558,9 @@ function render(){
    <li><b>제작팀 담당</b> — 용사가 돌아왔다 최민 / 작두 신규·인턴 / 나이트런 배종일 전담. 인턴 공수가 작두에 투입되므로 별도 '인턴 신규작'은 라인업에서 제외했습니다(총 6작품).</li>
    <li><b>게이트 여유</b> — 오픈 예정 회차분의 1차 영상 완료일과 해당 성우 방식 게이트 사이의 영업일 수. 0에 가까울수록 한 회차만 밀려도 12/21에서 이탈합니다.</li>
    <li><b>제작자 직접 입력</b> — 요약표의 작품명 · 완료 회차 · 다음 회차 착수일 · 회차당 영업일 · 오픈 회차를 화면에서 바로 고칠 수 있고, 고치는 즉시 더빙최종본·오픈회차·간트·시나리오가 다시 계산됩니다. '+ 작품 추가'와 ✕(삭제)로 라인업도 바꿀 수 있습니다.</li>
-   <li><b>상태 공유</b> — 입력한 값은 주소창(URL)에 실립니다. '현재 상태 링크 복사'를 눌러 보낸 링크를 열면 상대방도 같은 화면을 봅니다. 브라우저 새로고침에도 유지되고, 'JSON 내보내기/불러오기'로 파일 저장도 됩니다. (여러 명이 동시에 편집한 내용을 자동으로 합치려면 Supabase 같은 저장소 연결이 별도로 필요합니다.)</li>
+   <li><b>공유 저장소</b> — HTML 상단의 <code>SUPABASE_URL</code> · <code>SUPABASE_ANON_KEY</code> 두 줄을 채우면 <b>모든 사람이 같은 값을 봅니다.</b> 누가 고치든 0.7초 뒤 자동 저장되고, 다른 화면들은 15초마다 자동으로 최신값을 받아옵니다(탭을 다시 열 때도 즉시 갱신). 툴바의 상태 칩에서 저장·불러옴 시각을 확인할 수 있고, <code>↻ 다시 불러오기</code>로 즉시 동기화됩니다. 같은 파일로 보드를 나누려면 주소 뒤에 <code>?board=이름</code>을 붙이면 됩니다.</li>
+   <li><b>미설정 상태</b> — 두 줄이 비어 있으면 상태 칩이 노란색 경고로 바뀌고, 입력값은 주소창(URL)에만 실립니다. 이때는 '링크 복사'로 보낸 사람만 같은 화면을 봅니다. 'JSON 내보내기/불러오기'는 두 경우 모두 동작합니다.</li>
+   <li><b>동시 편집</b> — 마지막에 저장한 값이 남습니다(last-write-wins). 내가 방금 고친 직후 6초 동안은 남의 값으로 덮어쓰지 않고 기다렸다가 반영합니다.</li>
    <li><b>회차 완료일 계산</b> — 오픈 회차를 3으로 바꾸면 게이트 판정도 3회차 기준으로 자동 이동합니다. 상단 '리스크 버퍼'는 아직 완료되지 않은 모든 회차에 1~2주 지연을 일괄 반영합니다.</li>
    <li><b>미탑승 작품</b> — 오픈 예정 회차분의 더빙최종본 완료 + 1주 후 첫 월요일에 순차 런칭하도록 자동 배치했습니다.</li>
    <li><b>재고 부족(빨간 칸)</b> — 해당 주의 누적 오픈 목표가 누적 더빙최종본을 넘어서는 시점. 제작 속도가 주 1회 공개보다 느리기 때문에, 런칭 시점의 재고를 다 쓰면 연재가 끊깁니다.</li>
@@ -530,6 +579,10 @@ document.getElementById("opnAll").onchange=(e)=>{
   const v=parseInt(e.target.value,10); if(isNaN(v)||v<1||v>40) return;
   WORKS.forEach(w=>w.open=v); saveState(); render();
 };
+document.getElementById("btcAll").onchange=(e)=>{
+  const v=parseInt(e.target.value,10); if(isNaN(v)||v<1||v>40) return;
+  WORKS.forEach(w=>w.batch=v); saveState(); render();
+};
 
 /* ---------- 상태 저장 / 링크 ---------- */
 const enc=(o)=>btoa(unescape(encodeURIComponent(JSON.stringify(o))));
@@ -541,26 +594,77 @@ function currentState(){
     span:document.getElementById("span").value,
     scen:SCEN }};
 }
+function applyState(st){
+  if(!st||!Array.isArray(st.w)||!st.w.length) return false;
+  WORKS=st.w.map(w=>({n:"",a:"",done:0,rate:7,open:5,batch:5,start:"",...w}));
+  if(st.o){ ["buf","cad","span"].forEach(k=>{ const el=document.getElementById(k);
+    if(el && [...el.options].some(o=>o.value===st.o[k])) el.value=st.o[k]; });
+    if(["auto","human","ai"].includes(st.o.scen)) SCEN=st.o.scen; }
+  document.getElementById("opnAll").value = WORKS[0].open||5;
+  document.getElementById("btcAll").value = WORKS[0].batch||5;
+  return true;
+}
 let SKIP=false;
+function loadState(){
+  try{ const m=location.hash.match(/s=([^&]+)/); if(!m) return false; return applyState(dec(m[1])); }
+  catch(e){ return false; }
+}
+window.addEventListener("hashchange",()=>{ if(SKIP||SB.on) return; if(loadState()) render(); });
+
+/* ---------- 공유 저장소 (Supabase REST) ---------- */
+const boardId = new URLSearchParams(location.search).get("board") || SB_ROW;
+const SB = {
+  on: !!(SUPABASE_URL && SUPABASE_ANON_KEY),
+  url: `${SUPABASE_URL}/rest/v1/${SB_TABLE}`,
+  hdr: {apikey:SUPABASE_ANON_KEY, Authorization:`Bearer ${SUPABASE_ANON_KEY}`,
+        "Content-Type":"application/json"},
+  seen: null, editing:0, timer:null, busy:false
+};
+const chip=document.getElementById("sync");
+function setSync(state, text){ chip.dataset.s=state; chip.textContent=text; }
+const hhmm=()=>new Date().toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"});
+
+async function sbPull(force){
+  if(!SB.on) return;
+  try{
+    const r=await fetch(`${SB.url}?id=eq.${encodeURIComponent(boardId)}&select=state,updated_at`,
+                        {headers:SB.hdr, cache:"no-store"});
+    if(!r.ok) throw new Error(r.status);
+    const rows=await r.json();
+    if(!rows.length){ setSync("on",`공유 켜짐 · 저장된 값 없음`); return; }
+    const {state, updated_at}=rows[0];
+    if(!force && updated_at===SB.seen) { setSync("on",`공유 켜짐 · ${hhmm()} 확인`); return; }
+    if(!force && Date.now()-SB.editing < 6000){            // 방금 편집했으면 덮어쓰지 않고 대기
+      setSync("busy","다른 사람 변경 있음 · 곧 반영"); return; }
+    SB.seen=updated_at;
+    if(applyState(state)){ render(); setSync("on",`공유 켜짐 · ${hhmm()} 불러옴`); }
+  }catch(e){ setSync("err","공유 저장소 연결 실패 — 화면에서만 반영됨"); }
+}
+async function sbPush(){
+  if(!SB.on) return;
+  SB.busy=true; setSync("busy","저장 중…");
+  try{
+    const now=new Date().toISOString();
+    const r=await fetch(SB.url, {method:"POST",
+      headers:{...SB.hdr, Prefer:"resolution=merge-duplicates,return=representation"},
+      body: JSON.stringify({id:boardId, state:currentState(), updated_at:now})});
+    if(!r.ok) throw new Error(await r.text());
+    SB.seen=now; setSync("on",`공유 켜짐 · ${hhmm()} 저장됨`);
+  }catch(e){ setSync("err","저장 실패 — 새로고침 후 다시 시도"); }
+  finally{ SB.busy=false; }
+}
 function saveState(){
+  SB.editing=Date.now();
+  if(SB.on){ clearTimeout(SB.timer); SB.timer=setTimeout(sbPush,700); return; }
   try{ SKIP=true; location.hash="s="+enc(currentState()); setTimeout(()=>SKIP=false,0); }catch(e){}
 }
-function loadState(){
-  try{
-    const m=location.hash.match(/s=([^&]+)/); if(!m) return false;
-    const st=dec(m[1]); if(!st||!Array.isArray(st.w)||!st.w.length) return false;
-    WORKS=st.w.map(w=>({n:"",a:"",done:0,rate:7,open:5,start:"",...w}));
-    if(st.o){ ["buf","cad","span"].forEach(k=>{ const el=document.getElementById(k);
-      if(el && [...el.options].some(o=>o.value===st.o[k])) el.value=st.o[k]; });
-      if(["auto","human","ai"].includes(st.o.scen)) SCEN=st.o.scen; }
-    document.getElementById("opnAll").value = WORKS[0].open||5;
-    return true;
-  }catch(e){ return false; }
-}
-window.addEventListener("hashchange",()=>{ if(SKIP) return; if(loadState()) render(); });
+document.getElementById("pullB").onclick=()=>{
+  if(SB.on) sbPull(true);
+  else { if(loadState()) render(); }
+};
 
 document.getElementById("addW").onclick=()=>{
-  WORKS.push({n:"새 작품",a:"담당 미정",agree:"미정",done:0,rate:7,open:5,
+  WORKS.push({n:"새 작품",a:"담당 미정",agree:"미정",done:0,rate:7,open:5,batch:5,
               start:fmtY(BASE),sHint:"1회차 착수 기준"});
   saveState(); render();
   const el=document.querySelector('.tin[data-i="'+(WORKS.length-1)+'"][data-f="n"]');
@@ -570,13 +674,14 @@ document.getElementById("resetW").onclick=()=>{
   if(!confirm("입력한 값을 모두 초기 상태로 되돌립니다. 계속할까요?")) return;
   WORKS=JSON.parse(JSON.stringify(DEFAULT_WORKS)); SCEN="auto";
   document.getElementById("buf").value="0"; document.getElementById("cad").value="1";
-  document.getElementById("opnAll").value="5";
+  document.getElementById("opnAll").value="5"; document.getElementById("btcAll").value="5";
   saveState(); render();
 };
 document.getElementById("copyL").onclick=async(e)=>{
-  saveState();
-  try{ await navigator.clipboard.writeText(location.href); }
-  catch(err){ prompt("아래 주소를 복사하세요", location.href); return; }
+  if(!SB.on) saveState();
+  const url = SB.on ? location.origin+location.pathname+(boardId!==SB_ROW?`?board=${boardId}`:"") : location.href;
+  try{ await navigator.clipboard.writeText(url); }
+  catch(err){ prompt("아래 주소를 복사하세요", url); return; }
   const b=e.target; const t=b.textContent; b.textContent="✔ 복사됨";
   setTimeout(()=>b.textContent=t,1600);
 };
@@ -589,13 +694,21 @@ document.getElementById("impJ").onclick=()=>document.getElementById("fileJ").cli
 document.getElementById("fileJ").onchange=(e)=>{
   const f=e.target.files[0]; if(!f) return;
   const rd=new FileReader();
-  rd.onload=()=>{ try{ location.hash="s="+enc(JSON.parse(rd.result)); if(loadState()) render(); }
+  rd.onload=()=>{ try{ if(applyState(JSON.parse(rd.result))){ saveState(); render(); } }
                   catch(err){ alert("불러오기에 실패했습니다 — JSON 형식을 확인해 주세요."); } };
   rd.readAsText(f); e.target.value="";
 };
 
-loadState();
-render();
+if(SB.on){
+  setSync("busy","공유 저장소 확인 중…");
+  render();
+  sbPull(true).then(()=>{ setInterval(()=>{ if(!SB.busy) sbPull(false); }, SB_POLL_MS); });
+  document.addEventListener("visibilitychange",()=>{ if(!document.hidden) sbPull(false); });
+}else{
+  setSync("off","⚠ 공유 저장소 미설정 — 수정이 나에게만 보입니다");
+  loadState();
+  render();
+}
 </script>
 </body>
 </html>
