@@ -290,6 +290,10 @@
   </div>
   <table class="sum" id="summary"></table>
 
+  <h2>공정 구성 — 47 / 25영업일에 무엇이 들어있나</h2>
+  <table class="sum" id="proc"></table>
+  <div class="notes" id="procNote" style="margin-top:10px"></div>
+
   <h2>계산 근거 및 가정</h2>
   <div class="notes" id="notes"></div>
 </section>
@@ -799,6 +803,33 @@ function renderDetail(rows,onT,totalOpen,hum,ai,wks,opt){
   document.querySelectorAll(".delb").forEach(el=>el.onclick=()=>{
     if(WORKS.length<=1)return; WORKS.splice(+el.dataset.del,1); saveState(); render();
   });
+
+  /* 공정 구성표 */
+  const PROC=[
+    ["영상/사운드 제작",7,"내부 제작팀",7,"내부 제작팀","1차 영상 — 여기까지가 '제작회차'"],
+    ["내부/작가 승인",5,"PMO+EB",5,"PMO+EB","작가 승인 포함 · <b>1회전 기준</b>, 반려 후 재승인 루프는 미포함"],
+    ["영상/사운드 완성",5,"내부 제작팀",5,"내부 제작팀",""],
+    ["대사/자막 번역",5,"GW content",5,"GW content",""],
+    ["녹음 자료 전달",10,"내부 제작팀",null,"—","AI는 내부 진행이라 해당 없음"],
+    ["녹음 대본집 확정",10,"내부 제작팀/LDF",null,"—","<b>대본 단계 핑퐁이 여기 포함</b> — 스튜디오와 대본 조율"],
+    ["녹음",1,"외부 스튜디오/LDF",1,"내부 제작팀","현장 즉시 피드백 · 재녹음 원칙 불가"],
+    ["믹싱",1,"외부 스튜디오 vs 내부",1,"내부 제작팀",""],
+    ["자막 번역 수정",2,"GW content",null,"—",""],
+    ["자막 영상에 입히기",1,"내부 제작팀",1,"내부 제작팀",""],
+  ];
+  let pt=`<thead><tr><th>단계</th><th>인간 성우<br>영업일</th><th>담당</th><th>AI 성우<br>영업일</th><th>담당</th><th>비고</th></tr></thead><tbody>`;
+  PROC.forEach(([n,h2,hd,a2,ad,note])=>{
+    pt+=`<tr><td class="w">${n}</td><td class="w">${h2}</td><td>${hd}</td>
+      <td class="w">${a2===null?"—":a2}</td><td>${ad}</td><td style="white-space:normal">${note}</td></tr>`;
+  });
+  pt+=`<tr style="background:var(--band)"><td class="w">합계</td><td class="w">47</td><td></td><td class="w">25</td><td></td>
+      <td style="white-space:normal">인간 성우 47영업일 안에 일본 스튜디오 왕복 약 2개월이 포함된 것으로 계산</td></tr></tbody>`;
+  document.getElementById("proc").innerHTML=pt;
+  document.getElementById("procNote").innerHTML=`<ul>
+    <li><b>들어 있는 것</b> — 작가 승인(5영업일), 녹음 대본집 확정 단계의 대본 조율(10영업일), 녹음 자료 전달(10영업일), 자막 번역 수정(2영업일).</li>
+    <li><b>들어 있지 않은 것</b> — ① 작가가 반려했을 때의 <b>수정 후 재승인 루프</b>, ② 믹싱본을 받은 뒤의 <b>리테이크·재녹음</b>(스튜디오와 '재녹음 원칙 불가, 녹음 현장에서 즉시 피드백'으로 합의), ③ 번역 감수 재확인, ④ 한국어 AI 보이스·BGM·SE 분리본(WAV) 준비 같은 부대 작업.</li>
+    <li><b>대응</b> — 위 루프가 한 번씩 돌 가능성을 보려면 상단 <b>리스크 버퍼</b>를 1주 또는 2주로 켜면 됩니다. 아직 완료되지 않은 모든 회차에 일괄로 지연을 얹어 마감 여유가 어떻게 무너지는지 보여줍니다.</li>
+  </ul>`;
 
   document.getElementById("notes").innerHTML=`<ul>
    <li><b>공정 리드타임</b> — 인간 성우 47영업일 / AI 성우 25영업일 중 앞단 '영상·사운드 제작' 7영업일은 1차 영상 완료 시점에 소진. 따라서 <b>1차 영상 이후 잔여 = 인간 40영업일 / AI 18영업일</b>. 인간 성우의 40영업일 안에 일본 스튜디오 약 2개월(발송 → 녹음 → 믹싱본 회수)이 포함된 것으로 봤습니다.</li>
