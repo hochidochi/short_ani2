@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>웹툰 애니메이션 런칭 일정 · 2026-12-21</title>
+<style>
+  :root{
+    color-scheme: light;
+    --surface-1:#fcfcfb; --plane:#f9f9f7;
+    --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781;
+    --grid:#e1e0d9; --axis:#c3c2b7; --ring:rgba(11,11,11,0.10);
+    --s-prod:#2a78d6; --s-dub:#1baf7a; --s-open:#eb6834;
+    --st-good:#0ca30c; --st-warn:#fab219; --st-crit:#d03b3b;
+    --band:#f0efec;
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --surface-1:#1a1a19; --plane:#0d0d0d;
+    --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --ring:rgba(255,255,255,0.10);
+    --s-prod:#3987e5; --s-dub:#199e70; --s-open:#d95926;
+    --st-good:#0ca30c; --st-warn:#fab219; --st-crit:#d03b3b;
+    --band:#242422;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--plane);color:var(--ink);font-size:14px;line-height:1.5;
+    font-family:system-ui,-apple-system,"Segoe UI","Apple SD Gothic Neo","Noto Sans KR",sans-serif}
+  .wrap{max-width:1900px;margin:0 auto;padding:22px 20px 64px}
+  h1{font-size:20px;margin:0 0 3px;letter-spacing:-.01em}
+  h2{font-size:15px;margin:30px 0 10px;letter-spacing:-.01em}
+  h3{font-size:13px;margin:26px 0 9px;color:var(--ink-2);font-weight:650}
+  .sub{color:var(--ink-2);font-size:13px;margin:0}
+  .btn{font:inherit;font-size:12px;padding:6px 12px;border-radius:8px;cursor:pointer;
+    border:1px solid var(--ring);background:var(--surface-1);color:var(--ink-2)}
+  .btn:hover{border-color:var(--axis)}
+  header.top{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;justify-content:space-between;margin-bottom:16px}
+  .tabs{display:inline-flex;background:var(--band);border-radius:10px;padding:3px;gap:3px}
+  .tabs button{font:inherit;font-size:12.5px;font-weight:600;padding:6px 16px;border:none;border-radius:8px;
+    background:none;color:var(--ink-2);cursor:pointer}
+  .tabs button[aria-selected="true"]{background:var(--surface-1);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+
+  .verdict{display:flex;gap:16px;align-items:flex-start;background:var(--surface-1);
+    border:1px solid var(--ring);border-radius:14px;padding:18px 20px;margin-bottom:12px;border-left-width:4px}
+  .verdict[data-t="go"]{border-left-color:var(--st-good)}
+  .verdict[data-t="watch"]{border-left-color:var(--st-warn)}
+  .verdict[data-t="risk"]{border-left-color:var(--st-crit)}
+  .verdict .lamp{width:13px;height:13px;border-radius:50%;margin-top:7px;flex:none}
+  .verdict[data-t="go"] .lamp{background:var(--st-good)}
+  .verdict[data-t="watch"] .lamp{background:var(--st-warn)}
+  .verdict[data-t="risk"] .lamp{background:var(--st-crit)}
+  .verdict .vh{font-size:19px;font-weight:650;letter-spacing:-.02em;line-height:1.35}
+  .verdict .vs{font-size:13px;color:var(--ink-2);margin-top:5px}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:10px;margin-bottom:6px}
+  .kpi{background:var(--surface-1);border:1px solid var(--ring);border-radius:12px;padding:12px 14px}
+  .kpi .lab{font-size:11px;color:var(--muted);margin-bottom:4px}
+  .kpi .val{font-size:24px;font-weight:650;letter-spacing:-.02em;line-height:1.1}
+  .kpi .val small{font-size:13px;font-weight:500;color:var(--ink-2);margin-left:3px}
+  .kpi .note{font-size:11px;color:var(--muted);margin-top:3px}
+  .card{background:var(--surface-1);border:1px solid var(--ring);border-radius:14px;padding:16px 18px}
+
+  .tl-head{position:relative;height:40px;margin-left:236px;border-bottom:1px solid var(--grid)}
+  .tl-head .mo{position:absolute;font-size:10.5px;color:var(--muted);transform:translateX(-50%);top:22px;white-space:nowrap}
+  .vhead{position:absolute;top:2px;font-size:10.5px;font-weight:700;transform:translateX(-50%);
+    white-space:nowrap;padding:0 4px;background:var(--surface-1)}
+  .tl-row{display:flex;align-items:center;height:60px;border-bottom:1px solid var(--grid)}
+  .tl-row:last-child{border-bottom:none}
+  .tl-name{width:236px;flex:none;padding-right:14px}
+  .tl-name b{font-size:12.5px;display:block;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tl-name em{font-size:10.5px;color:var(--muted);font-style:normal;display:block;line-height:1.3;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tl-track{position:relative;flex:1;height:60px}
+  .tl-bar{position:absolute;top:18px;height:14px;border-radius:4px;
+    background:color-mix(in srgb,var(--s-prod) 40%,var(--surface-1));
+    border:1px solid color-mix(in srgb,var(--s-prod) 70%,transparent)}
+  .tl-mk{position:absolute;top:19px;width:11px;height:11px;transform:translateX(-50%) rotate(45deg);
+    border:1.5px solid var(--surface-1);border-radius:2px}
+  .tl-launch{position:absolute;top:15px;transform:translateX(-50%);font-size:16px;line-height:1}
+  .tl-lab{position:absolute;font-size:9.5px;color:var(--muted);transform:translateX(-50%);white-space:nowrap}
+  .vline{position:absolute;top:0;bottom:0;width:1px}
+  .vline.today{background:var(--st-warn);width:2px}
+  .vline.launch{background:var(--s-open);width:2px}
+
+  .risks{display:grid;gap:8px}
+  .risk{background:var(--surface-1);border:1px solid var(--ring);border-radius:12px;padding:12px 15px;border-left-width:3px}
+  .risk[data-l="crit"]{border-left-color:var(--st-crit)}
+  .risk[data-l="warn"]{border-left-color:var(--st-warn)}
+  .risk[data-l="info"]{border-left-color:var(--s-prod)}
+  .risk .rt{font-size:13px;font-weight:650;margin-bottom:2px}
+  .risk .rd{font-size:12.5px;color:var(--ink-2)}
+  .risk .rq{font-size:12px;color:var(--ink);margin-top:5px;font-weight:600}
+  .stale{background:color-mix(in srgb,var(--st-warn) 18%,var(--surface-1));
+    border:1px solid color-mix(in srgb,var(--st-warn) 55%,var(--ring));
+    border-radius:12px;padding:10px 15px;font-size:12.5px;margin-bottom:12px;color:var(--ink)}
+
+  .controls{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;background:var(--surface-1);
+    border:1px solid var(--ring);border-radius:12px;padding:11px 14px;margin-bottom:14px}
+  .controls label{font-size:12px;color:var(--ink-2);display:inline-flex;align-items:center;gap:6px}
+  .controls [hidden]{display:none!important}
+  .controls select{font:inherit;font-size:12px;padding:4px 8px;border-radius:7px;border:1px solid var(--ring);
+    background:var(--plane);color:var(--ink)}
+  .ctl-sep{width:1px;height:20px;background:var(--grid)}
+  .confbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;
+    background:var(--surface-1);border:1px solid var(--ring);border-radius:12px;padding:12px 16px;margin-bottom:14px;
+    border-left:4px solid var(--axis)}
+  .confbar[data-d="1"]{border-left-color:var(--st-warn);
+    background:color-mix(in srgb,var(--st-warn) 9%,var(--surface-1))}
+  .confbar .ct{font-size:13px;font-weight:650}
+  .confbar .cs{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .btn-pri{font:inherit;font-size:12.5px;font-weight:650;padding:8px 18px;border-radius:9px;cursor:pointer;
+    border:1px solid transparent;background:var(--s-open);color:#fff}
+  .btn-pri:hover{filter:brightness(1.06)}
+  .btn-pri:disabled{background:var(--band);color:var(--muted);cursor:default;border-color:var(--ring)}
+  .stamp{font-size:12px;color:var(--muted);background:var(--surface-1);border:1px solid var(--ring);
+    border-radius:10px;padding:8px 14px;margin-bottom:12px}
+  .stamp b{color:var(--ink)}
+  .scen{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin-bottom:14px}
+  .scard{background:var(--surface-1);border:1px solid var(--ring);border-radius:12px;padding:11px 14px;
+    cursor:pointer;text-align:left;font:inherit;color:var(--ink-2)}
+  .scard:hover{border-color:var(--axis)}
+  .scard[aria-pressed="true"]{border-color:var(--s-open);box-shadow:inset 0 0 0 1px var(--s-open)}
+  .scard .t{font-size:12px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:6px;margin-bottom:5px}
+  .scard .t .mk{width:9px;height:9px;border-radius:50%;border:2px solid var(--axis)}
+  .scard[aria-pressed="true"] .t .mk{border-color:var(--s-open);background:var(--s-open)}
+  .scard .big{font-size:19px;font-weight:650;color:var(--ink);letter-spacing:-.02em}
+  .scard .big small{font-size:12px;font-weight:500;color:var(--ink-2);margin-left:2px}
+  .scard .sub2{font-size:11px;color:var(--muted);margin-top:3px}
+  .scen-h{grid-column:1/-1;font-size:11px;color:var(--muted);font-weight:600;margin-bottom:-4px}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;font-size:12px;color:var(--ink-2);margin-bottom:10px}
+  .lg{display:inline-flex;align-items:center;gap:6px}
+  .lgbar{width:26px;height:11px;border-radius:3px;display:inline-block;
+    background:color-mix(in srgb,var(--s-prod) 40%,var(--surface-1));
+    border:1px solid color-mix(in srgb,var(--s-prod) 70%,transparent)}
+  .lgdia{width:10px;height:10px;display:inline-block;transform:rotate(45deg);border-radius:2px;
+    background:var(--st-good)}
+  .sw{width:12px;height:12px;border-radius:3px;display:inline-block;border:1px solid var(--ring)}
+
+  .scroller{overflow:auto;border:1px solid var(--ring);border-radius:12px;background:var(--surface-1);max-height:74vh}
+  table.gantt{border-collapse:separate;border-spacing:0;font-size:10px;font-variant-numeric:tabular-nums;white-space:nowrap}
+  table.gantt th,table.gantt td{padding:0;margin:0}
+  .stick{position:sticky;left:0;z-index:6;background:var(--surface-1)}
+  .stick2{position:sticky;z-index:6;background:var(--surface-1)}
+  thead th{position:sticky;top:0;z-index:8;background:var(--surface-1);border-bottom:1px solid var(--grid)}
+  thead tr:nth-child(2) th{top:22px}
+  thead th.corner{z-index:10;left:0}
+  th.yr{height:22px;font-size:11px;font-weight:600;color:var(--ink-2);text-align:center;background:var(--band);
+    border-bottom:1px solid var(--grid)}
+  th.wk{width:30px;min-width:30px;height:30px;font-weight:500;color:var(--muted);font-size:9px;
+    text-align:center;vertical-align:middle;border-left:1px solid var(--grid)}
+  th.wk.q{background:var(--band)}
+  th.wk.now{color:var(--ink);font-weight:700;background:color-mix(in srgb,var(--st-warn) 30%,var(--surface-1))}
+  th.wk.launch{color:var(--ink);font-weight:700;background:color-mix(in srgb,var(--s-open) 22%,var(--surface-1))}
+  th.wk.mile,td.cell.mile{border-left:2px solid var(--ink)}
+  td.cell{width:30px;min-width:30px;height:22px;text-align:center;vertical-align:middle;
+    border-left:1px solid var(--grid);border-bottom:1px solid var(--grid);color:var(--ink-2)}
+  td.cell.past{opacity:.45}
+  td.name{min-width:132px;max-width:132px;padding:0 8px;font-size:12px;font-weight:600;color:var(--ink);
+    border-bottom:1px solid var(--grid);border-right:1px solid var(--grid);overflow:hidden}
+  td.name .aut{display:block;font-size:10px;font-weight:400;color:var(--muted)}
+  td.meta{min-width:112px;max-width:112px;padding:0 8px;font-size:11px;color:var(--ink-2);
+    border-bottom:1px solid var(--grid);border-right:1px solid var(--grid);left:132px}
+  td.row-lab{min-width:82px;max-width:82px;padding:0 8px;font-size:11px;color:var(--ink-2);
+    border-bottom:1px solid var(--grid);border-right:1px solid var(--axis);left:244px;text-align:left}
+  td.row-lab .dot{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:5px;vertical-align:-1px}
+  tr.grp-end td{border-bottom:2px solid var(--axis)}
+  tr.row-dim{filter:grayscale(1);opacity:.45}
+  tr.tot td{font-weight:700;color:var(--ink)}
+  tr.tot td.row-lab,tr.tot td.name,tr.tot td.meta{background:var(--band)}
+  .pill{display:inline-block;font-size:10px;font-weight:600;padding:1px 7px;border-radius:999px;border:1px solid var(--ring)}
+  .p-hum{background:color-mix(in srgb,var(--st-good) 16%,transparent);color:var(--ink)}
+  .p-ai{background:color-mix(in srgb,var(--s-prod) 18%,transparent);color:var(--ink)}
+  .p-mix{background:color-mix(in srgb,var(--st-warn) 26%,transparent);color:var(--ink)}
+  .p-no{background:color-mix(in srgb,var(--st-crit) 20%,transparent);color:var(--ink)}
+  .p-hold{background:color-mix(in srgb,var(--st-warn) 34%,transparent);color:var(--ink)}
+  .short{background:color-mix(in srgb,var(--st-crit) 15%,var(--surface-1))!important;
+    color:color-mix(in srgb,var(--st-crit) 70%,var(--ink))!important}
+  .short1{outline:2px solid var(--st-crit);outline-offset:-2px;font-weight:700;
+    background:color-mix(in srgb,var(--st-crit) 30%,var(--surface-1))!important;color:var(--ink)!important}
+
+  table.sum{border-collapse:collapse;width:100%;font-size:12.5px;background:var(--surface-1);
+    border:1px solid var(--ring);border-radius:12px;overflow:hidden;font-variant-numeric:tabular-nums}
+  table.sum th{text-align:left;font-size:11px;color:var(--muted);font-weight:600;padding:9px 10px;
+    border-bottom:1px solid var(--grid);background:var(--band);white-space:nowrap}
+  table.sum td{padding:8px 10px;border-bottom:1px solid var(--grid);color:var(--ink-2);white-space:nowrap}
+  table.sum td.w{color:var(--ink);font-weight:600}
+  .tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+  .thint{font-size:12px;color:var(--muted)}
+  .syncchip{font-size:11px;padding:3px 9px;border-radius:999px;border:1px solid var(--ring);
+    color:var(--ink-2);background:var(--surface-1);white-space:nowrap}
+  .syncchip[data-s="on"]{border-color:color-mix(in srgb,var(--st-good) 60%,var(--ring));
+    background:color-mix(in srgb,var(--st-good) 12%,var(--surface-1))}
+  .syncchip[data-s="busy"],.syncchip[data-s="off"]{border-color:color-mix(in srgb,var(--st-warn) 60%,var(--ring));
+    background:color-mix(in srgb,var(--st-warn) 16%,var(--surface-1));color:var(--ink)}
+  .syncchip[data-s="err"]{border-color:color-mix(in srgb,var(--st-crit) 60%,var(--ring));
+    background:color-mix(in srgb,var(--st-crit) 14%,var(--surface-1))}
+  .tin{font:inherit;font-size:12.5px;padding:3px 6px;border-radius:6px;border:1px solid var(--ring);
+    background:var(--plane);color:var(--ink);width:150px}
+  .din{width:56px;text-align:center;font-variant-numeric:tabular-nums}
+  .sin{font:inherit;font-size:12px;padding:3px 6px;border-radius:6px;border:1px solid var(--ring);
+    background:var(--plane);color:var(--ink)}
+  .tin:focus,.sin:focus{outline:2px solid var(--s-open);outline-offset:-1px}
+  .delb{border:none;background:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 6px;border-radius:6px}
+  .delb:hover{background:color-mix(in srgb,var(--st-crit) 18%,transparent);color:var(--ink)}
+  .notes{background:var(--surface-1);border:1px solid var(--ring);border-radius:12px;padding:14px 18px;
+    font-size:12.5px;color:var(--ink-2);margin-top:14px}
+  .notes ul{margin:6px 0 0;padding-left:18px} .notes li{margin:4px 0} .notes b{color:var(--ink)}
+  .flag{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+  code{font-size:11.5px;background:var(--band);padding:1px 5px;border-radius:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div>
+    <h1>웹툰 애니메이션 런칭 일정</h1>
+    <p class="sub" id="subline"></p>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <div class="tabs" role="tablist">
+      <button id="tabDet"  role="tab" aria-selected="true">주차별 상세</button>
+      <button id="tabExec" role="tab" aria-selected="false">파이프라인</button>
+    </div>
+    <button class="btn" id="theme">◐ 다크</button>
+  </div>
+</header>
+
+<div id="stale"></div>
+
+<div class="controls" id="serialBar">
+  <label>연재 방식
+    <select id="serial">
+      <option value="regular">정기 연재</option>
+      <option value="season" selected>시즌제</option>
+    </select>
+  </label>
+  <div class="ctl-sep" id="seasonSep">
+  </div>
+  <label id="seasonBatchLab">시즌당 화수
+    <input type="number" id="seasonBatch" class="tin din" min="1" step="1" value="10">
+  </label>
+  <label id="seasonRestLab">시즌 간 휴지기간(주)
+    <input type="number" id="seasonRest" class="tin din" min="0" step="1" value="4">
+  </label>
+  <button class="btn" id="seasonRestAuto">↺ 자동 계산</button>
+  <div class="ctl-sep"></div>
+  <label title="켜면 표시 기간이 끝날 때까지 재고 부족(오픈 목표 &gt; 더빙 확보)이 한 번도 뜨지 않는 가장 이른 런칭일로 각 작품의 런칭일을 자동 조정합니다.">
+    <input type="checkbox" id="autoSafe" checked> 재고 부족 없는 날짜로 런칭일 자동 조정
+  </label>
+</div>
+
+<section id="execView" hidden>
+  <div id="confStamp"></div>
+  <div class="verdict" id="verdict"></div>
+  <div class="kpis" id="kpis"></div>
+  <h3 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">작품별 마일스톤 — 남은 제작 → 더빙 도착 → 런칭</h3>
+  <div class="legend" style="margin-bottom:8px">
+    <span class="lg"><span class="lgbar"></span>남은 1차 영상 제작 — 오늘부터 오픈분 완성까지 (이미 다 만든 작품은 막대 없음)</span>
+    <span class="lg"><span class="lgdia"></span>더빙최종본 도착 — 날짜 · 그 시점 누적 편수</span>
+    <span class="lg"><span style="color:var(--st-good);font-size:14px;line-height:1">▶</span>런칭</span>
+    <span class="lg" style="color:var(--muted)">색 = 상태 (초록 여유 있음 · 노랑 마감 여유 3영업일 이하 · 빨강 12/21 미탑승)</span>
+  </div>
+  <div class="card"><div id="tl"></div></div>
+  <h3>런칭 후 공개 가능 회차 (전 작품 합계)</h3>
+  <div class="card"><div id="supply"></div></div>
+  <h3>리스크 · 결정 필요 사항</h3>
+  <div class="risks" id="risks"></div>
+</section>
+
+<section id="detailView">
+  <div class="confbar" id="confbar"></div>
+  <div class="scen" id="scen"></div>
+  <div class="scen" id="openScen"></div>
+  <div class="controls">
+    <label>제작 현황 기준일 <input id="asof" class="sin" type="date"></label>
+    <div class="ctl-sep"></div>
+    <label>리스크 버퍼
+      <select id="buf"><option value="0" selected>없음</option><option value="5">1주</option><option value="10">2주</option></select>
+    </label>
+    <div class="ctl-sep"></div>
+    <label>오픈 회차 일괄 <input id="opnAll" class="tin din" type="number" min="1" max="40" value="3"></label>
+    <label>더빙 배치 일괄 <input id="btcAll" class="tin din" type="number" min="1" max="40" value="4"></label>
+    <div class="ctl-sep"></div>
+    <label>공개 주기
+      <select id="cad"><option value="1" selected>주 1회</option><option value="2">격주 1회</option></select>
+    </label>
+    <label>런칭일 일괄 적용 <input id="launchAll" class="sin" type="date"></label>
+    <div class="ctl-sep"></div>
+    <label>표시 기간
+      <select id="span"><option value="2027-12-27" selected>~ 2027년 말</option><option value="2027-09-27">~ 2027년 3분기</option><option value="2027-06-28">~ 2027년 상반기</option><option value="2027-03-29">~ 2027년 1분기</option></select>
+    </label>
+  </div>
+  <div class="legend">
+    <span class="lg"><span class="sw" style="background:var(--s-prod)"></span>제작회차 — 1차 영상 누적 완료</span>
+    <span class="lg"><span class="sw" style="background:var(--s-dub)"></span>더빙최종본 — 공개 가능 누적</span>
+    <span class="lg"><span class="sw" style="background:var(--s-open)"></span>오픈회차 — 누적 공개 목표</span>
+    <span class="lg"><span class="sw short1"></span>재고 부족 시작</span>
+    <span class="lg" style="color:var(--muted)">굵은 세로선 = 콘텐츠 확정 12/14 · 런칭 12/21 &nbsp;|&nbsp; 흐린 칸 = 지난 주차</span>
+  </div>
+  <div class="scroller" id="scroller"><table class="gantt" id="gantt"></table></div>
+
+  <h2>작품별 요약 · 제작 현황 입력</h2>
+  <div class="tools">
+    <span class="thint">흰 칸은 직접 수정할 수 있습니다 — 고치는 즉시 전부 다시 계산됩니다.</span>
+    <span style="flex:1"></span>
+    <span class="syncchip" id="sync">…</span>
+    <button class="btn" id="addW">+ 작품 추가</button>
+    <button class="btn" id="pullB">↻ 다시 불러오기</button>
+    <button class="btn" id="copyL">🔗 링크 복사</button>
+    <button class="btn" id="expJ">JSON 내보내기</button>
+    <button class="btn" id="impJ">불러오기</button>
+    <button class="btn" id="resetW">초기화</button>
+    <input type="file" id="fileJ" accept="application/json" style="display:none">
+  </div>
+  <table class="sum" id="summary"></table>
+
+  <h2>계산 근거 및 가정</h2>
+  <div class="notes" id="notes"></div>
+</section>
+
+</div>
+
+<script>
+/* =======================================================================
+   공유 저장소 — 아래 두 줄만 채우면 모든 사람이 같은 값을 봅니다.
+   Supabase SQL Editor에서 한 번 실행:
+     create table if not exists anime_schedule_state (
+       id text primary key, state jsonb not null,
+       updated_at timestamptz not null default now());
+     alter table anime_schedule_state enable row level security;
+     create policy "anon rw" on anime_schedule_state
+       for all to anon using (true) with check (true);
+   ======================================================================= */
+const SUPABASE_URL      = "";
+const SUPABASE_ANON_KEY = "";
+const SB_TABLE = "anime_schedule_state";
+const SB_ROW   = "default";
+const SB_POLL_MS = 15000;
+
+/* ---------- 영업일 유틸 ---------- */
+const HOL=new Set(["2026-09-24","2026-09-25","2026-09-28","2026-10-05","2026-10-09","2026-12-25",
+"2027-01-01","2027-02-08","2027-02-09","2027-02-10","2027-03-01","2027-05-05","2027-05-13",
+"2027-06-07","2027-08-16","2027-09-14","2027-09-15","2027-09-16","2027-10-04","2027-10-11","2027-12-27"]);
+const D=(s)=>{const[a,b,c]=String(s).split("-").map(Number);return new Date(Date.UTC(a,b-1,c));};
+const key=(d)=>d.toISOString().slice(0,10);
+const isBD=(d)=>{const w=d.getUTCDay();return w>=1&&w<=5&&!HOL.has(key(d));};
+const addDays=(d,n)=>{const x=new Date(d.getTime());x.setUTCDate(x.getUTCDate()+n);return x;};
+function addBD(d,n){let x=new Date(d.getTime());const s=n>=0?1:-1;n=Math.abs(n);
+  while(n>0){x=addDays(x,s);if(isBD(x))n--;}return x;}
+function snapBD(d){let x=new Date(d.getTime());while(!isBD(x))x=addDays(x,1);return x;}
+function bdBetween(a,b){if(!a||!b)return null;let n=0,s=a<b?1:-1,x=new Date(a.getTime());
+  while(key(x)!==key(b)){x=addDays(x,s);if(isBD(x))n+=s;}return n;}
+const fmtY=(d)=>d?key(d):"—";
+const fmtK=(d)=>d?`${d.getUTCMonth()+1}/${d.getUTCDate()}`:"—";
+const dayDiff=(a,b)=>Math.round((b-a)/864e5);
+const josa=(w,a,b)=>{const c=w.charCodeAt(w.length-1);return (c>=0xAC00&&c<=0xD7A3&&(c-0xAC00)%28)?a:b;};
+
+/* ---------- 상수 ---------- */
+const _n=new Date();
+const TODAY=D(`${_n.getFullYear()}-${String(_n.getMonth()+1).padStart(2,"0")}-${String(_n.getDate()).padStart(2,"0")}`);
+const LAUNCH=D("2026-12-21"), LOCK=D("2026-12-14");
+const LEAD={human:30, ai:8};   // 승인5+영상완성5(=10영업일)는 회차마다 반복하지 않고 3화 게이트로 별도 처리
+const APPROVE_GATE_BD=10;      // 3화 1차 영상 완성 후 승인 5영업일 + 영상 완성 5영업일(1회성)
+const GATE={human:D("2026-10-16"), ai:D("2026-11-17")};
+const MAXEP=40, CHART_START=D("2026-09-07");
+
+/* ---------- 기본 데이터 ---------- */
+const DEFAULT_ASOF="2026-09-10";
+const DEFAULT_WORKS=[
+ {n:"소녀바둑",       a:"작가 추해수",               done:6, rate:7, open:3, batch:4, voice:"human", launch:"", start:"2026-09-10",
+  b1e:6, b1d:"2026-11-06", sHint:"7회차 진행 중"},
+ {n:"냐한 남자",      a:"작가 김명진",               done:4, rate:7, open:3, batch:4, voice:"human", launch:"", start:"2026-09-10",
+  b1e:4, b1d:"2026-11-06", sHint:"5회차 진행 중"},
+ {n:"작두",          a:"작가 배종일 · 제작 신규/인턴", done:3, rate:13, open:3, batch:4, voice:"human", launch:"", start:"2026-11-01",
+  b1e:3, b1d:"2026-11-06", sHint:"4회차 11/1 재개", variant:"pause",
+  alt:{a:"작가 배종일", start:"2026-09-10", sHint:"4회차 즉시 재개(가정)", grays:["나이트런"]}},
+ {n:"살아남은 로맨스", a:"작가 김여은",               done:2, rate:9, open:3, batch:4, voice:"auto", launch:"", start:"2026-09-10",
+  b1e:0, b1d:"", sHint:"3회차 9/10 착수"},
+ {n:"용사가 돌아왔다", a:"담당 최민",                 done:1, rate:8, open:3, batch:4, voice:"auto", launch:"", start:"2026-09-14",
+  b1e:0, b1d:"", sHint:"2회차 9/14 착수", hint:"현재 8 / 목표 7"},
+ {n:"나이트런",       a:"배종일 전담",               done:1, rate:9, open:3, batch:4, voice:"auto", launch:"", start:"2026-09-14",
+  b1e:0, b1d:"", sHint:"2회차 9/14 착수"},
+ {n:"내부 제작 후보", a:"신규 · 인턴",               done:0, rate:13, open:3, batch:4, voice:"auto", launch:"", start:"2026-11-02",
+  b1e:0, b1d:"", sHint:"1회차 11/2 착수"},
+ {n:"외부 제작 후보", a:"외부 스튜디오",             done:0, rate:13, open:3, batch:4, voice:"auto", launch:"", start:"2026-10-05",
+  b1e:0, b1d:"", sHint:"1회차 10/5 착수"},
+];
+let WORKS=JSON.parse(JSON.stringify(DEFAULT_WORKS));
+let ASOF=D(DEFAULT_ASOF);
+let SCEN="human";
+let SERIAL="season";   // 정기 연재 | 시즌제
+let CONF=null;      // 확정된 계획 스냅샷
+
+/* ---------- 계산 ---------- */
+/* 표시 기간(windowEnd)까지 재고 부족(오픈 목표 > 더빙 확보)이 한 번도 뜨지 않는
+   가장 이른 월요일을 찾는다. candidate부터 1주씩 뒤로 밀며 검사한다. */
+function findSafeLaunch(candidate,dub,K,opt,windowEnd){
+  let L=new Date(candidate.getTime());
+  while(L.getUTCDay()!==1) L=addDays(L,1);
+  const dubPts=[]; for(let k=1;k<=MAXEP;k++) dubPts.push(dub[k]);   // 재사용을 위해 한 번만 배열화
+  for(let guard=0; guard<520; guard++){
+    const pts = opt.serial==="season" ? seasonSchedule(K,opt) : null;
+    let ok=true, qi=0;    // dub는 항상 오름차순 정규화돼 있어 주차가 진행될수록 qi도 앞으로만 움직이면 됨
+    for(let mon=new Date(L.getTime()); mon<=windowEnd; mon=addDays(mon,7)){
+      const n=Math.round((mon-L)/(7*864e5));
+      const openCount = pts ? countAtWeek(pts,n) : Math.min(MAXEP,K+Math.floor(n/opt.cadence));
+      if(openCount<=0) continue;
+      const fri=addDays(mon,4);
+      while(qi<MAXEP && dubPts[qi]<=fri) qi++;
+      if(openCount>qi){ ok=false; break; }
+    }
+    if(ok) return L;
+    L=addDays(L,7);
+  }
+  return L;
+}
+function compute(w,opt){
+  const rate=Math.max(1,w.rate||7), K=Math.max(1,w.open||3), B=Math.max(1,w.batch||4);
+  const b1e=Math.max(0,Math.min(w.b1e|0,MAXEP)), b1d=(b1e&&w.b1d)?D(w.b1d):null;
+  const tgt = w.launch?D(w.launch):LAUNCH;          // 이 작품의 목표 런칭일
+  const tlock = addDays(tgt,-7);                     // 콘텐츠 확정 마감 = 런칭 1주 전
+  const st=w.start?snapBD(D(w.start)):null;
+  if(!st){
+    const need=(w.done>=K)?0:(K-(w.done|0))*rate-1;
+    return {hold:true,rate,K,B,b1e,b1d,tgt,tlock,earliest:null,onTime:false,mode:"ai",mixed:false,lead:LEAD.ai,
+            ep1:{},dub:{},dH:{},dA:{},arrivals:[],launch:null,slack:null,
+            deadHum:addBD(GATE.human,-need), deadAi:addBD(GATE.ai,-need)};
+  }
+  const ep1={}, nx=(w.done|0)+1;
+  ep1[nx]=addBD(addBD(st,rate-1), opt.riskBD);
+  for(let k=nx+1;k<=MAXEP;k++) ep1[k]=addBD(ep1[nx],(k-nx)*rate);
+  for(let k=w.done|0;k>=1;k--) ep1[k]=addBD(opt.asof||ASOF,-((w.done|0)-k)*rate);
+
+  const gate3=addBD(ep1[3],APPROVE_GATE_BD);  // 3화 완성 + 승인·영상완성(10영업일) = 전 회차 공통 더빙 시작 게이트
+  const dubFor=(mode)=>{
+    const lead=LEAD[mode], d={};
+    for(let k=1;k<=MAXEP;k++){
+      if(k<=b1e&&b1d){ d[k]=b1d; continue; }
+      if(mode==="ai"){ d[k]=addBD(ep1[k],lead); if(d[k]<gate3) d[k]=gate3; continue; }
+      const idx=Math.ceil((k-b1e)/B), last=Math.min(MAXEP,b1e+idx*B);
+      d[k]=addBD(ep1[last],lead); if(d[k]<gate3) d[k]=gate3;
+    }
+    for(let k=2;k<=MAXEP;k++) if(d[k]<d[k-1]) d[k]=d[k-1];
+    return d;
+  };
+  const dH=dubFor("human"), dA=dubFor("ai");
+  const pin = (w.voice==="human"||w.voice==="ai") ? w.voice : null;
+  // 자동: 일본 스튜디오 발송 이력(1차 배치)이 있는 작품만 인간 성우 후보로 봄
+  const mode = opt.mode==="human" ? "human" : opt.mode==="ai" ? "ai"
+             : pin ? pin : ((b1e>0 && dH[K]<=tlock) ? "human" : "ai");
+  const dub = mode==="human"?dH:dA;
+  const dlOk = dub[K]<=tlock;   // 콘텐츠 확정 마감 통과 여부(과거 기준 '온타임')
+  let deadlineEarliest=addBD(dub[K],5); while(deadlineEarliest.getUTCDay()!==1) deadlineEarliest=addDays(deadlineEarliest,1);
+  let launch, onTime, tlockFinal, slack, earliest;
+  if(opt.autoSafe){
+    let candidate = dlOk ? tgt : deadlineEarliest;
+    while(candidate.getUTCDay()!==1) candidate=addDays(candidate,1);
+    const windowEnd = opt.windowEnd || addDays(candidate,365);
+    // 표시 기간 내내 재고 부족(오픈 목표 > 더빙 확보)이 없는 가장 이른 런칭일을 자동으로 찾는다
+    launch = findSafeLaunch(candidate,dub,K,opt,windowEnd);
+    onTime = key(launch)===key(tgt);
+    tlockFinal = addDays(launch,-7);
+    slack = bdBetween(dub[K],tlockFinal);
+    earliest = launch;
+  }else{
+    onTime = dlOk;
+    tlockFinal = tlock;
+    slack = bdBetween(dub[K],tlock);
+    earliest = deadlineEarliest;
+    launch = onTime ? tgt : earliest;
+  }
+  const arrivals=[]; let seen=null;
+  for(let k=1;k<=Math.max(K,12);k++){
+    const t=key(dub[k]);
+    if(t!==seen){ arrivals.push({ep:k,to:k,date:dub[k]}); seen=t; }
+    else arrivals[arrivals.length-1].to=k;
+  }
+  return {hold:false,rate,K,B,b1e,b1d,tgt,tlock:tlockFinal,dlOk,earliest,ep1,dub,dH,dA,mode,pin,mixed:(b1e>0&&mode==="ai"),
+          onTime,launch,lead:LEAD[mode],slack,arrivals};
+}
+function weeksAxis(endStr){
+  const out=[]; let d=new Date(CHART_START.getTime()); const end=D(endStr);
+  while(d<=end){ out.push(new Date(d.getTime())); d=addDays(d,7); }
+  return out;
+}
+/* 시즌제: 시즌당 화수만큼 오픈 후 지정한 휴지기간만큼 쉬었다가 다음 시즌 진행 */
+function seasonSchedule(K,opt){
+  const B=Math.max(1,opt.seasonBatch||10), rest=Math.max(0,opt.seasonRest||0), cad=opt.cadence;
+  const initN=Math.min(K,B);
+  const pts=[{week:0,count:initN}];
+  let count=initN, week=0;
+  while(count<MAXEP){
+    if(count>0 && count%B===0) week+=rest;
+    week+=cad; count+=1;
+    pts.push({week,count});
+  }
+  return pts;
+}
+function countAtWeek(pts,n){
+  let c=0;
+  for(const p of pts){ if(p.week<=n) c=p.count; else break; }
+  return c;
+}
+function seriesFor(c,wks,opt,w){
+  const prod=[],dubbed=[],open=[];
+  if(c.hold){ wks.forEach(()=>{prod.push(w.done|0);dubbed.push(0);open.push(0);}); return {prod,dubbed,open}; }
+  const pts = opt.serial==="season" ? seasonSchedule(c.K||5,opt) : null;
+  for(const mon of wks){
+    const fri=addDays(mon,4); let p=0,q=0;
+    for(let k=1;k<=MAXEP;k++){ if(c.ep1[k]<=fri)p=k; if(c.dub[k]<=fri)q=k; }
+    prod.push(p); dubbed.push(q);
+    if(mon<c.launch) open.push(0);
+    else{ const n=Math.round((mon-c.launch)/(7*864e5));
+      open.push(pts?countAtWeek(pts,n):Math.min(MAXEP,(c.K||5)+Math.floor(n/opt.cadence))); }
+  }
+  return {prod,dubbed,open};
+}
+
+/* ---------- 렌더 ---------- */
+const readOpts=()=>({riskBD:parseInt(document.getElementById("buf").value,10)||0,
+  cadence:parseFloat(document.getElementById("cad").value)||1, mode:SCEN, asof:ASOF,
+  serial:SERIAL, seasonBatch:parseFloat(document.getElementById("seasonBatch").value)||10,
+  seasonRest:parseFloat(document.getElementById("seasonRest").value)||0,
+  windowEnd:D(document.getElementById("span").value),
+  autoSafe:document.getElementById("autoSafe").checked});
+/* 확정 스냅샷 = 작업 중인 값의 사본 */
+const snapshot=()=>({asof:key(ASOF), w:JSON.parse(JSON.stringify(WORKS)),
+  buf:document.getElementById("buf").value, cad:document.getElementById("cad").value, scen:SCEN,
+  serial:SERIAL, seasonBatch:document.getElementById("seasonBatch").value,
+  seasonRest:document.getElementById("seasonRest").value,
+  autoSafe:document.getElementById("autoSafe").checked});
+const planKey=(o)=>JSON.stringify({asof:o.asof,w:o.w,buf:o.buf,cad:o.cad,scen:o.scen,
+  serial:o.serial,seasonBatch:o.seasonBatch,seasonRest:o.seasonRest,autoSafe:o.autoSafe});
+const isDirty=()=>!CONF || planKey(snapshot())!==planKey(CONF);
+function confirmPlan(){ CONF={...snapshot(), at:new Date().toISOString()}; saveState(); render(); }
+
+/* 작품에 alt(대체 시나리오)가 있고 variant가 켜져 있으면 표시/계산용 병합본을 만든다.
+   raw는 원본(편집 대상), w는 화면에 실제로 쓰일 병합본 */
+function effectiveWork(raw){
+  return (raw.variant==="continue"&&raw.alt) ? {...raw,...raw.alt} : raw;
+}
+function bundle(works,opt,spanEnd){
+  const wks=weeksAxis(spanEnd);
+  const rows=works.map(raw=>{const w=effectiveWork(raw);const c=compute(w,opt);return {w,raw,c,s:seriesFor(c,wks,opt,w)};});
+  const onT=rows.filter(r=>r.c.onTime);
+  const grays=new Set(rows.filter(r=>r.raw.variant==="continue"&&r.raw.alt&&r.raw.alt.grays).flatMap(r=>r.raw.alt.grays));
+  return {wks,rows,onT,grays,
+    totalOpen:onT.reduce((a,r)=>a+(r.w.open||3),0),
+    hum:onT.filter(r=>r.c.mode==="human").length,
+    ai:onT.filter(r=>r.c.mode==="ai").length};
+}
+function render(){
+  if(!CONF) CONF={...snapshot(), at:new Date().toISOString()};   // 최초엔 현재 값을 확정으로
+
+  document.getElementById("subline").innerHTML=
+    `오늘 <b>${fmtY(TODAY)}</b> · 런칭 <b>2026-12-21</b> D-${Math.max(0,dayDiff(TODAY,LAUNCH))}`+
+    ` · 콘텐츠 확정 12/14 D-${Math.max(0,dayDiff(TODAY,LOCK))} · 제작 현황 기준일 ${fmtY(ASOF)}`;
+  const staleDays=dayDiff(ASOF,TODAY);
+  document.getElementById("stale").innerHTML = staleDays>7
+    ? `<div class="stale">⚠ 제작 현황이 <b>${staleDays}일 전(${fmtY(ASOF)})</b> 기준입니다. 완료 회차와 기준일을 갱신해 주세요.</div>` : "";
+
+  /* 작업 중(주차별 상세) */
+  const optL=readOpts();
+  const L=bundle(WORKS,optL,document.getElementById("span").value);
+  renderDetail(L.rows,L.onT,L.totalOpen,L.hum,L.ai,L.wks,optL,L.grays);
+
+  /* 확정본(파이프라인) */
+  const optC={riskBD:parseInt(CONF.buf,10)||0, cadence:parseFloat(CONF.cad)||1,
+              mode:CONF.scen, asof:D(CONF.asof), serial:CONF.serial||"regular",
+              seasonBatch:parseFloat(CONF.seasonBatch)||10, seasonRest:parseFloat(CONF.seasonRest)||0,
+              windowEnd:D("2027-12-27"), autoSafe:!!CONF.autoSafe};
+  const C=bundle(CONF.w,optC,"2027-12-27");
+  renderExec(C.rows,C.onT,C.totalOpen,C.hum,C.ai,C.wks,optC,C.grays);
+
+  renderConfirmBar();
+}
+function renderConfirmBar(){
+  const dirty=isDirty();
+  const at=CONF&&CONF.at?new Date(CONF.at):null;
+  const when=at?at.toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}):"—";
+  const bar=document.getElementById("confbar"); bar.dataset.d=dirty?"1":"0";
+  bar.innerHTML=`<div>
+      <div class="ct">${dirty?"⚠ 확정되지 않은 변경이 있습니다":"✓ 파이프라인은 현재 화면과 동일합니다"}</div>
+      <div class="cs">파이프라인(상위 보고 화면)은 <b>확정된 계획</b>만 보여줍니다 · 마지막 확정 ${when}</div>
+    </div>
+    <button class="btn-pri" id="confBtn" ${dirty?"":"disabled"}>${dirty?"이 내용으로 확정":"확정 완료"}</button>`;
+  const b=document.getElementById("confBtn"); if(b&&dirty) b.onclick=confirmPlan;
+}
+
+function renderExec(rows,onT,totalOpen,hum,ai,wks,opt,grays){
+  grays = grays || new Set();
+  const at=CONF&&CONF.at?new Date(CONF.at):null;
+  document.getElementById("confStamp").innerHTML=
+    `<div class="stamp">확정 기준 <b>${at?at.toLocaleString("ko-KR",{year:"numeric",month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}):"—"}</b>
+     · 제작 현황 기준일 <b>${CONF?CONF.asof:"—"}</b>
+     · 공개 주기 <b>${opt.cadence===1?"주 1회":"격주 1회"}</b>
+     · 작품당 오픈 <b>${[...new Set(rows.map(r=>r.w.open||3))].join("/")}회차</b>${isDirty()?` &nbsp;·&nbsp; <span style="color:var(--st-warn);font-weight:600">주차별 상세에 미확정 변경 있음</span>`:""}</div>`;
+  const late=rows.length-onT.length;
+  const tight=onT.filter(r=>r.c.slack!==null&&r.c.slack<=3);
+  const tone=late>0?"risk":(tight.length?"watch":"go");
+  const stag=rows.filter(r=>r.w.launch&&r.w.launch!==key(LAUNCH)).length;
+  const lbl=stag?"목표일 런칭":"12/21 런칭";
+  const head=late>0
+    ? `${lbl} ${onT.length}개 작품 · ${totalOpen}회차 — <span style="color:var(--st-crit)">${late}개 작품 이탈</span>`
+    : tight.length
+    ? `${lbl} ${onT.length}개 작품 · ${totalOpen}회차 — 전 작품 탑승, 단 ${tight.length}개는 여유 없음`
+    : `${lbl} ${onT.length}개 작품 · ${totalOpen}회차 — 전 작품 일정 내 확보`;
+  const v=document.getElementById("verdict"); v.dataset.t=tone;
+  v.innerHTML=`<span class="lamp"></span><div><div class="vh">${head}</div>
+    <div class="vs">인간 성우 ${hum}개 · AI 성우 ${ai}개${late?` · 미탑승 ${late}개`:""}
+    &nbsp;|&nbsp; 콘텐츠 확정 마감(12/14)까지 D-${Math.max(0,dayDiff(TODAY,LOCK))}
+    ${stag?` &nbsp;|&nbsp; <b>런칭일 개별 조정 ${stag}개 작품</b>`:""}</div></div>`;
+
+  const iL=wks.findIndex(m=>LAUNCH>=m&&LAUNCH<addDays(m,7));
+  const avail=(i)=>rows.reduce((a,r)=>a+Math.min(r.s.open[i]||0,r.s.dubbed[i]||0),0);
+  let firstShort=null, firstShortW="";
+  onT.forEach(r=>r.s.open.forEach((o,i)=>{ if(o>0&&o>r.s.dubbed[i]&&(firstShort===null||i<firstShort)){firstShort=i;firstShortW=r.w.n;} }));
+  document.getElementById("kpis").innerHTML=[
+    ["목표일 런칭 작품", onT.length, `/ ${rows.length}개`, late?`${late}개 목표일 초과`:"전 작품 목표일 충족"],
+    ["런칭 시 공개 회차", totalOpen, "회차", `작품당 ${Math.round(totalOpen/Math.max(1,onT.length))}회차`],
+    ["인간 성우 / AI 성우", `${hum} / ${ai}`, "", "일본 스튜디오 / 내부 제작"],
+    ["마감 여유 3일 이하", tight.length, "개", tight.length?tight.map(r=>r.w.n).join(", "):"없음"],
+    ["12주 후 공개 가능", iL>=0?avail(iL+12):"—", "회차", `런칭 시 ${iL>=0?avail(iL):0}회차`],
+  ].map(([l,x,u,n])=>`<div class="kpi"><div class="lab">${l}</div><div class="val">${x}${u?`<small>${u}</small>`:""}</div><div class="note">${n}</div></div>`).join("");
+
+  /* 마일스톤 타임라인 */
+  const t0=D("2026-09-01"), t1=D("2027-03-31"), span=t1-t0;
+  const pc=(d)=>Math.max(0,Math.min(100,(d-t0)/span*100));
+  let months="";
+  for(let y=2026,mo=9;;){
+    const d=D(`${y}-${String(mo).padStart(2,"0")}-01`);
+    if(d>t1) break;
+    if(d>=t0) months+=`<span class="mo" style="left:${pc(d)}%">${mo}월</span>`;
+    mo++; if(mo>12){mo=1;y++;}
+  }
+  const heads=`<span class="vhead" style="left:${pc(TODAY)}%;color:var(--st-warn)">오늘</span>
+    <span class="vhead" style="left:${pc(LOCK)}%;transform:translateX(-100%);color:var(--ink-2)">확정 12/14 </span>
+    <span class="vhead" style="left:${pc(LAUNCH)}%;color:var(--s-open)">런칭 12/21</span>`;
+  const vlines=`<div class="vline today" style="left:${pc(TODAY)}%"></div>
+    <div class="vline" style="left:${pc(LOCK)}%;border-left:1px dashed var(--axis)"></div>
+    <div class="vline launch" style="left:${pc(LAUNCH)}%"></div>`;
+  let tl=`<div class="tl-head">${months}${heads}</div>`;
+  rows.forEach(r=>{
+    const c=r.c;
+    const col=c.hold?"var(--st-warn)":!c.onTime?"var(--st-crit)":(c.slack<=3?"var(--st-warn)":"var(--st-good)");
+    const badge=c.hold?"홀드 · 착수 미정":!c.onTime?`${fmtK(c.earliest)} 이후 가능 (목표 ${fmtK(c.tgt)})`
+      :c.mixed?"1차 배치 인간 성우 + 이후 AI":(c.mode==="human"?"인간 성우":"AI 성우");
+    const badge2 = badge + (c.pin&&!c.hold?" · 고정":"");
+    let bars="";
+    if(!c.hold){
+      if(c.ep1[c.K]>TODAY)
+        bars+=`<div class="tl-bar" style="left:${pc(TODAY)}%;width:${Math.max(0.5,pc(c.ep1[c.K])-pc(TODAY))}%"
+                title="남은 1차 영상 제작 — ${c.K}회차 완료 ${fmtY(c.ep1[c.K])}"></div>`;
+      else
+        bars+=`<div class="tl-lab" style="left:${pc(TODAY)}%;top:19px;transform:none;padding-left:6px"
+                title="오픈분 ${c.K}회차 1차 영상 이미 완료">1차 영상 ${c.K}회차 제작 완료</div>`;
+      const seen=new Set(); let j=0;
+      c.arrivals.filter(a=>a.ep<=c.K).forEach(a=>{
+        if(seen.has(key(a.date)))return; seen.add(key(a.date));
+        const top=(j++%2)?43:33;
+        bars+=`<div class="tl-mk" style="left:${pc(a.date)}%;background:${col}"
+                 title="${a.ep}${a.to>a.ep?`~${a.to}`:""}회차 더빙 도착 ${fmtY(a.date)}"></div>
+               <div class="tl-lab" style="left:${pc(a.date)}%;top:${top}px">${fmtK(a.date)}·${a.to}편</div>`;
+      });
+      bars+=`<div class="tl-launch" style="left:${pc(c.launch)}%;color:${col}" title="런칭 ${fmtY(c.launch)}">▶</div>`;
+    }
+    const dim=grays.has(r.w.n);
+    tl+=`<div class="tl-row"${dim?' style="filter:grayscale(1);opacity:.45"':''}><div class="tl-name"><b>${r.w.n}</b>
+      <em style="color:${col}">● ${badge2}</em>
+      ${!c.hold&&c.onTime?`<em>마감 여유 ${c.slack}영업일</em>`:""}
+      ${dim?`<em style="color:var(--st-crit)">⛔ 작두 continue로 보류</em>`:""}</div>
+      <div class="tl-track">${vlines}${bars}</div></div>`;
+  });
+  document.getElementById("tl").innerHTML=tl;
+  document.getElementById("supply").innerHTML=supplyChart(rows,wks,opt);
+
+  /* 리스크 */
+  const R=[];
+  rows.filter(r=>!r.c.onTime).forEach(r=>R.push(["crit",`${r.w.n} — 목표일(${r.c.hold?"—":fmtK(r.c.tgt)}) 미탑승 · 자동 조정 런칭 ${r.c.hold?"—":fmtY(r.c.earliest)}`,
+    r.c.hold?`착수일이 정해지지 않았습니다. 인간 성우 ${fmtY(r.c.deadHum)}, AI 성우 ${fmtY(r.c.deadAi)}까지 착수해야 12/21에 들어옵니다.`
+     :r.c.dlOk
+       ?`목표 런칭일 ${fmtY(r.c.tgt)}에 열면 표시 기간 안에 재고 부족이 발생해, 부족이 없는 가장 이른 런칭일인 ${fmtY(r.c.earliest)}로 자동 조정했습니다.`
+       :`오픈분 더빙최종본이 ${fmtY(r.c.dub[r.c.K])}에 나옵니다 (목표 런칭 ${fmtY(r.c.tgt)}의 확정 마감 ${fmtY(addDays(r.c.tgt,-7))} 초과). 재고 부족까지 감안한 최단 가능 런칭일은 ${fmtY(r.c.earliest)}입니다.`,
+    `제작 속도를 올리거나, 오픈 회차를 줄이거나, 이 작품의 런칭일을 ${fmtY(r.c.earliest)}로 미루는 결정이 필요합니다.`]));
+  tight.forEach(r=>R.push(["warn",`${r.w.n} — 마감 여유 ${r.c.slack}영업일`,
+    `오픈분 더빙최종본 ${fmtY(r.c.dub[r.c.K])}, 확정 마감 ${fmtY(r.c.tlock)}. 한 회차만 밀려도 이탈합니다.`,
+    `버퍼가 사실상 없습니다. 지연 시 대체안을 미리 정해두는 게 좋습니다.`]));
+  const flip=rows.filter(r=>!r.c.hold&&r.c.onTime&&r.c.mode==="ai"&&r.c.dH[r.c.K]>LOCK);
+  if(flip.length) R.push(["crit",`AI 성우 없이는 ${flip.length}개 작품이 이탈`,
+    `${flip.map(r=>r.w.n).join(", ")}${josa(flip[flip.length-1].w.n,"은","는")} 인간 성우로 가면 오픈분이 ${flip.map(r=>fmtK(r.c.dH[r.c.K])).join(" / ")}에 나와 12/14를 넘깁니다.`,
+    `AI 성우 도입 여부 — 확정 시 ${onT.length}개 작품 ${totalOpen}회차, 미도입 시 ${hum}개 작품.`]);
+  const b1=rows.filter(r=>r.c.b1e>0&&r.c.b1d);
+  if(b1.length) R.push(["info",`1차 배치 ${b1.reduce((a,r)=>a+r.c.b1e,0)}편 — ${fmtY(b1[0].c.b1d)} 회수 예정`,
+    `${b1.map(r=>`${r.w.n} ${r.c.b1e}편`).join(" · ")}을 일본 스튜디오에 발송. 이 회수일이 밀리면 해당 작품이 그대로 밀립니다.`,
+    `스튜디오 회수일 확약이 현재 라인업의 전제입니다.`]);
+  if(firstShort!==null) R.push(["warn",
+    `${firstShortW} — 런칭 후 ${Math.max(0,Math.round((wks[firstShort]-LAUNCH)/(7*864e5)))}주 만에 공개 재고 소진`,
+    `${fmtY(wks[firstShort])} 주부터 공개할 회차가 부족해집니다. 공개 속도가 제작·더빙 속도(회차당 1.2~1.8주)보다 빠르기 때문이며, 인간 성우 작품은 다음 배치가 도착할 때까지 재고가 늘지 않습니다.`,
+    `격주 공개로 낮추거나 제작 인력을 늘리는 결정이 필요합니다.`]);
+  document.getElementById("risks").innerHTML = R.length
+    ? R.map(([l,t,d,q])=>`<div class="risk" data-l="${l}"><div class="rt">${t}</div><div class="rd">${d}</div><div class="rq">→ ${q}</div></div>`).join("")
+    : `<div class="risk" data-l="info"><div class="rt">현재 확인된 리스크 없음</div></div>`;
+}
+
+function supplyChart(rows,wks,opt){
+  const iL=wks.findIndex(m=>LAUNCH>=m&&LAUNCH<addDays(m,7)); if(iL<0) return "";
+  const n=Math.min(wks.length-iL,30); if(n<2) return "";
+  const xs=[...Array(n)].map((_,j)=>iL+j);
+  const target=xs.map(i=>rows.reduce((a,r)=>a+(r.s.open[i]||0),0));
+  const avail =xs.map(i=>rows.reduce((a,r)=>a+Math.min(r.s.open[i]||0,r.s.dubbed[i]||0),0));
+  const W=980,H=215,P={l:46,r:120,t:18,b:26};
+  const maxY=Math.max(...target,...avail,1);
+  const X=(j)=>P.l+(W-P.l-P.r)*j/(n-1);
+  const Y=(v)=>H-P.b-(H-P.t-P.b)*v/maxY;
+  const path=(a)=>a.map((v,j)=>`${j?"L":"M"}${X(j).toFixed(1)},${Y(v).toFixed(1)}`).join(" ");
+  let ticks="";
+  for(let g=0;g<=4;g++){const v=Math.round(maxY*g/4);
+    ticks+=`<line x1="${P.l}" x2="${W-P.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--grid)"/>
+      <text x="${P.l-8}" y="${Y(v)+4}" text-anchor="end" font-size="10" fill="var(--muted)">${v}</text>`;}
+  let xl=""; xs.forEach((i,j)=>{ if(j%4===0)
+    xl+=`<text x="${X(j)}" y="${H-8}" text-anchor="middle" font-size="10" fill="var(--muted)">${fmtK(wks[i])}</text>`;});
+  const gap=target.findIndex((v,j)=>v>avail[j]);
+  const same = target[n-1]===avail[n-1];
+  let yT=Y(target[n-1]), yA=Y(avail[n-1]);
+  if(!same && Math.abs(yT-yA)<15){ const m=(yT+yA)/2; yT=m-8; yA=m+8; }
+  const gapMark = gap>0
+    ? `<line x1="${X(gap)}" x2="${X(gap)}" y1="${P.t}" y2="${H-P.b}" stroke="var(--st-crit)" stroke-width="1.5" stroke-dasharray="3 3"/>
+       <text x="${X(gap)+6}" y="${P.t+11}" font-size="10.5" fill="var(--st-crit)" font-weight="700">재고 소진 ${fmtK(wks[xs[gap]])}</text>`:"";
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="런칭 후 주차별 공개 목표와 공개 가능 회차">
+    ${ticks}${xl}${gapMark}
+    <path d="${path(target)}" fill="none" stroke="var(--s-open)" stroke-width="2"/>
+    <path d="${path(avail)}"  fill="none" stroke="var(--s-dub)"  stroke-width="2"/>
+    <circle cx="${X(n-1)}" cy="${Y(target[n-1])}" r="4" fill="var(--s-open)"/>
+    <circle cx="${X(n-1)}" cy="${Y(avail[n-1])}"  r="4" fill="var(--s-dub)"/>
+    ${same
+      ? `<text x="${X(n-1)+9}" y="${Y(avail[n-1])+4}" font-size="11" font-weight="700" fill="var(--ink)">목표 = 가능 ${avail[n-1]}</text>`
+      : `<text x="${X(n-1)+9}" y="${yT+4}" font-size="11" font-weight="700" fill="var(--ink)">공개 목표 ${target[n-1]}</text>
+         <text x="${X(n-1)+9}" y="${yA+4}" font-size="11" font-weight="700" fill="var(--ink)">공개 가능 ${avail[n-1]}</text>`}
+  </svg>
+  <div style="font-size:11.5px;color:var(--muted);margin-top:2px">${opt.cadence===1?"주 1회":"격주 1회"} 공개 기준 · ${same&&gap<0?"공개 목표와 공개 가능이 끝까지 일치합니다 — 재고 부족 구간이 없습니다.":"두 선이 벌어지는 구간이 공개할 회차가 모자라는 구간입니다."}</div>`;
+}
+
+function renderDetail(rows,onT,totalOpen,hum,ai,wks,opt,grays){
+  grays = grays || new Set();
+  let sh=`<div class="scen-h">성우 방식 시나리오 — 카드를 눌러 전환</div>`;
+  [["auto","자동 (마감 기준)","1차 배치가 있고 12/14 안에 들어오면 인간, 아니면 AI"],
+   ["human","전부 인간 성우","AI 성우 미도입 시나리오"],
+   ["ai","전부 AI 성우","1차 배치 이후 전부 AI"]].forEach(([id,tit,desc])=>{
+    const rs=WORKS.map(w=>compute(effectiveWork(w),{...opt,mode:id}));
+    const on=rs.filter(c=>c.onTime).length;
+    const tot=rs.reduce((a,c,ix)=>a+(c.onTime?(WORKS[ix].open||3):0),0);
+    const last=rs.reduce((m,c)=>(c.launch&&c.launch>m)?c.launch:m,LAUNCH);
+    sh+=`<button class="scard" aria-pressed="${id===SCEN}" data-s="${id}">
+      <div class="t"><span class="mk"></span>${tit}</div>
+      <div class="big">12/21 ${on}개<small>작품 · ${tot}회차</small></div>
+      <div class="sub2">미탑승 ${WORKS.length-on}개 · 전 작품 런칭 완료 ${fmtY(last)}</div>
+      <div class="sub2">${desc}</div></button>`;
+  });
+  document.getElementById("scen").innerHTML=sh;
+  document.querySelectorAll("#scen .scard").forEach(b=>b.onclick=()=>{SCEN=b.dataset.s;saveState();render();});
+
+  /* 런칭 회차 시나리오 비교 */
+  const curK=(WORKS[0]&&WORKS[0].open)||5;
+  const scn=(K)=>{
+    const rs=WORKS.map(w=>{const ww={...effectiveWork(w),open:K};const c=compute(ww,opt);
+      return {w:ww,c,s:seriesFor(c,wks,opt,ww)};});
+    const on=rs.filter(r=>r.c.onTime);
+    let first=null, firstW="";
+    on.forEach(r=>r.s.open.forEach((o,i)=>{if(o>0&&o>r.s.dubbed[i]&&(first===null||i<first)){first=i;firstW=r.w.n;}}));
+    return {K, on:on.length, tot:on.length*K, firstW,
+      hum:on.filter(r=>r.c.mode==="human").length,
+      ai:on.filter(r=>r.c.mode!=="human").length,
+      minSlack:on.length?Math.min(...on.map(r=>r.c.slack)):null,
+      out:rs.filter(r=>!r.c.onTime).map(r=>r.w.n), first};
+  };
+  const cands=[...new Set([3,5,curK])].sort((a,b)=>a-b);
+  document.getElementById("openScen").innerHTML=`<div class="scen-h">런칭 회차 시나리오 — 작품당 몇 회차로 열 것인가 (재고 소진은 현재 공개 주기 기준)</div>`+cands.map(K=>{
+    const x=scn(K);
+    const tone=x.on<rows.length?"var(--st-crit)":(x.minSlack!==null&&x.minSlack<=3?"var(--st-warn)":"var(--st-good)");
+    return `<button class="scard" aria-pressed="${K===curK}" data-k="${K}">
+      <div class="t"><span class="mk"></span>작품당 ${K}회차 오픈${K===curK?" · 현재":""}</div>
+      <div class="big">${x.on}개<small>작품 · 총 ${x.tot}회차</small></div>
+      <div class="sub2" style="color:${tone}">● ${x.on<rows.length?`미탑승 ${rows.length-x.on}개 (${x.out.join(", ")})`:"전 작품 탑승"}
+        ${x.minSlack!==null?` · 최소 마감 여유 ${x.minSlack}영업일`:""}</div>
+      <div class="sub2">인간 성우 ${x.hum} · AI 성우 ${x.ai} &nbsp;|&nbsp; 재고 소진 ${x.first===null?"없음":`${fmtY(wks[x.first])} (${x.firstW})`}</div>
+    </button>`;}).join("");
+  document.querySelectorAll("#openScen .scard").forEach(b=>b.onclick=()=>{
+    const v=+b.dataset.k; WORKS.forEach(w=>w.open=v);
+    document.getElementById("opnAll").value=v; saveState(); render();
+  });
+
+
+
+  const MILES=[LOCK,LAUNCH].map(key);
+  const mileWeek=(m)=>MILES.some(x=>{const d=D(x);return d>=m&&d<addDays(m,7);});
+  const nowWeek=(m)=>TODAY>=m&&TODAY<addDays(m,7);
+  const pastWeek=(m)=>addDays(m,6)<TODAY;
+  let yrs=[],prev=null;
+  wks.forEach(m=>{const y=m.getUTCFullYear(); if(y!==prev){yrs.push([y,1]);prev=y;} else yrs[yrs.length-1][1]++;});
+  let h=`<thead><tr><th class="corner yr stick" colspan="3" style="text-align:left;padding:0 8px">작품 / 구분</th>`;
+  yrs.forEach(([y,n])=>h+=`<th class="yr" colspan="${n}">${y}년</th>`);
+  h+=`</tr><tr><th class="corner wk stick" colspan="3" style="text-align:left;padding:0 8px;font-size:10px">해당 주차 월요일</th>`;
+  wks.forEach(m=>{
+    const cls=["wk",m.getUTCMonth()%3===0&&m.getUTCDate()<=7?"q":"",mileWeek(m)?"mile":"",
+      nowWeek(m)?"now":"",LAUNCH>=m&&LAUNCH<addDays(m,7)?"launch":""].filter(Boolean).join(" ");
+    h+=`<th class="${cls}" ${nowWeek(m)?'id="todayCol"':''}>${m.getUTCMonth()+1}<br>${m.getUTCDate()}</th>`;
+  });
+  h+=`</tr></thead><tbody>`;
+  const LAB=[["제작회차","prod","--s-prod"],["더빙최종본","dubbed","--s-dub"],["오픈회차","open","--s-open"]];
+  const tot={prod:[],dubbed:[],open:[]};
+  wks.forEach((m,i)=>["prod","dubbed","open"].forEach(k=>tot[k].push(rows.reduce((a,r)=>a+r.s[k][i],0))));
+  LAB.forEach(([lab,f,cv],ri)=>{
+    h+=`<tr class="tot ${ri===2?"grp-end":""}">`;
+    if(!ri) h+=`<td class="name stick" rowspan="3"><span>전체 합계</span><span class="aut">${rows.length}개 작품</span></td>
+      <td class="meta stick2" rowspan="3"><div style="color:var(--muted)">누적 회차 합</div></td>`;
+    h+=`<td class="row-lab stick2"><span class="dot" style="background:var(${cv})"></span>${lab}</td>`;
+    wks.forEach((m,i)=>{
+      const v=tot[f][i],mi=mileWeek(m)?" mile":"",pa=pastWeek(m)?" past":"";
+      if(!v){h+=`<td class="cell${mi}${pa}"></td>`;return;}
+      const a=Math.round((0.12+0.5*Math.min(1,v/(rows.length*MAXEP)))*100);
+      const s2=f==="open"&&v>tot.dubbed[i];
+      h+=`<td class="cell${mi}${pa}${s2?" short":""}" style="${s2?"":`background:color-mix(in srgb,var(${cv}) ${a}%,var(--surface-1))`}">${v}</td>`;
+    });
+    h+=`</tr>`;
+  });
+  rows.forEach(r=>{
+    const c=r.c;
+    const pill=c.hold?`<span class="pill p-hold">홀드</span>`
+      :c.mixed?`<span class="pill p-mix">1차 인간+AI</span>`
+      :c.mode==="human"?`<span class="pill p-hum">인간 성우${c.pin?" 고정":""}</span>`
+      :`<span class="pill p-ai">AI 성우${c.pin?" 고정":""}</span>`;
+    const launchTxt=c.hold?`착수 D-day ${fmtK(c.deadAi)}`:`런칭 ${fmtY(c.launch).slice(2)}`;
+    const launchSty=(c.hold||!c.onTime)?"color:var(--st-crit);font-weight:700":"color:var(--muted)";
+    const dim=grays.has(r.w.n);
+    LAB.forEach(([lab,f,cv],ri)=>{
+      h+=`<tr class="${ri===2?"grp-end":""}${dim?" row-dim":""}">`;
+      if(!ri) h+=`<td class="name stick" rowspan="3"><span>${r.w.n}</span><span class="aut">${r.w.a||""}</span>${dim?`<span class="aut" style="color:var(--st-crit)">⛔ 작두 continue로 보류</span>`:""}</td>
+        <td class="meta stick2" rowspan="3">${pill}
+          <div style="margin-top:4px;color:var(--muted)">회차당 ${c.rate}영업일</div>
+          <div style="${launchSty}">${launchTxt}</div></td>`;
+      h+=`<td class="row-lab stick2"><span class="dot" style="background:var(${cv})"></span>${lab}</td>`;
+      const arr=r.s[f];
+      wks.forEach((m,i)=>{
+        const v=arr[i],mi=mileWeek(m)?" mile":"",pa=pastWeek(m)?" past":"";
+        if(!v){h+=`<td class="cell${mi}${pa}"></td>`;return;}
+        const a=Math.round((0.12+0.5*Math.min(1,v/MAXEP))*100);
+        const s2=f==="open"&&v>r.s.dubbed[i];
+        const first=s2&&(i===0||!(r.s.open[i-1]>0&&r.s.open[i-1]>r.s.dubbed[i-1]));
+        const tip=s2?`${r.w.n} · ${fmtY(m)} 주 : 목표 ${v}회차 / 확보 ${r.s.dubbed[i]}회차 — ${v-r.s.dubbed[i]}회차 부족`
+                    :`${r.w.n} · ${lab} · ${fmtY(m)} 주 : ${v}회차`;
+        h+=`<td class="cell${mi}${pa}${s2?(first?" short short1":" short"):""}" style="${s2?"":`background:color-mix(in srgb,var(${cv}) ${a}%,var(--surface-1))`}" title="${tip}">${v}</td>`;
+      });
+      h+=`</tr>`;
+    });
+  });
+  document.getElementById("gantt").innerHTML=h+`</tbody>`;
+
+  let s=`<thead><tr><th>작품</th><th>작가 / 담당</th><th>완료<br>회차</th><th>다음 회차<br>착수일</th>
+    <th>회차당<br>영업일</th><th>오픈<br>회차</th><th>더빙<br>배치</th><th>1차 배치<br>편수 · 도착일</th>
+    <th>오픈분<br>더빙 확보일</th><th>마감<br>여유</th><th>성우 방식</th><th>목표 런칭일<br>(작품별 조정)</th><th>재고 소진</th><th></th></tr></thead><tbody>`;
+  rows.forEach((r,i)=>{
+    const c=r.c;
+    let shortIdx=null; r.s.open.forEach((o,j)=>{ if(o>0&&o>r.s.dubbed[j]&&shortIdx===null) shortIdx=j; });
+    const dot=c.hold?"var(--st-warn)":(!c.onTime?"var(--st-crit)":(c.slack<=3?"var(--st-warn)":"var(--st-good)"));
+    const dim=grays.has(r.w.n);
+    s+=`<tr${dim?' class="row-dim"':''}><td class="w"><span class="flag" style="background:${dot}"></span>
+        <input class="tin ed" type="text" value="${r.w.n}" data-i="${i}" data-f="n"></td>
+      <td><input class="tin ed" type="text" value="${r.w.a||""}" data-i="${i}" data-f="a">
+        ${r.raw.alt?`<select class="sin ed" style="margin-top:3px;width:100%" data-i="${i}" data-f="variant">
+            <option value="pause"${(r.raw.variant||"pause")==="pause"?" selected":""}>기본 (11/1 재개)</option>
+            <option value="continue"${r.raw.variant==="continue"?" selected":""}>continue (배종일 작두 집중)</option>
+          </select>`:""}</td>
+      <td><input class="tin din ed" type="number" min="0" max="40" value="${r.w.done|0}" data-i="${i}" data-f="done"></td>
+      <td><input class="sin ed" type="date" value="${r.w.start||""}" data-i="${i}" data-f="start">
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">${r.w.sHint||""}</div></td>
+      <td><input class="tin din ed" type="number" min="1" max="30" value="${r.w.rate}" data-i="${i}" data-f="rate">
+          ${r.w.hint?`<div style="font-size:10px;color:var(--muted);margin-top:2px">${r.w.hint}</div>`:""}</td>
+      <td><input class="tin din ed" type="number" min="1" max="40" value="${r.w.open||3}" data-i="${i}" data-f="open"></td>
+      <td><input class="tin din ed" type="number" min="1" max="40" value="${r.w.batch||4}" data-i="${i}" data-f="batch"></td>
+      <td><input class="tin din ed" type="number" min="0" max="40" value="${r.w.b1e|0}" data-i="${i}" data-f="b1e">
+          <input class="sin ed" style="margin-left:4px" type="date" value="${r.w.b1d||""}" data-i="${i}" data-f="b1d"></td>`;
+    if(c.hold){
+      s+=`<td colspan="3" style="color:var(--st-crit)"><b>착수 데드라인</b> — 인간 ${fmtY(c.deadHum)} · AI ${fmtY(c.deadAi)}</td>
+        <td><input class="sin ed" type="date" value="${r.w.launch||key(LAUNCH)}" data-i="${i}" data-f="launch"></td>
+        <td>—</td><td><button class="delb" data-del="${i}">✕</button></td></tr>`;
+    }else{
+      const slc=c.slack<0?"var(--st-crit)":(c.slack<=3?"var(--st-warn)":"var(--st-good)");
+      s+=`<td class="w">${fmtY(c.dub[c.K])}</td>
+        <td style="color:${slc};font-weight:600">${c.slack>=0?`+${c.slack}`:c.slack}영업일</td>
+        <td><select class="sin ed" data-i="${i}" data-f="voice">
+            <option value="auto"${(r.w.voice||"auto")==="auto"?" selected":""}>자동</option>
+            <option value="human"${r.w.voice==="human"?" selected":""}>인간 고정</option>
+            <option value="ai"${r.w.voice==="ai"?" selected":""}>AI 고정</option></select>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">${c.mixed?"1차 인간 + 이후 AI":(c.mode==="human"?"인간 성우":"AI 성우")}</div></td>
+        <td><input class="sin ed" type="date" value="${r.w.launch||key(LAUNCH)}" data-i="${i}" data-f="launch">
+          <div style="font-size:10px;margin-top:2px;font-weight:${c.onTime?400:700};color:${c.onTime?"var(--muted)":"var(--st-crit)"}">
+            ${c.onTime?`최단 가능 ${fmtY(c.earliest)}`
+                      :`<a href="#" class="fixL" data-i="${i}" data-d="${fmtY(c.earliest)}" style="color:var(--st-crit)">실제 런칭 예상 ${fmtY(c.earliest)} → 맞추기</a>`}</div></td>
+        <td style="color:${shortIdx!==null?"var(--st-crit)":"var(--ink-2)"}">${shortIdx===null?"없음":fmtY(wks[shortIdx])}</td>
+        <td><button class="delb" data-del="${i}">✕</button></td></tr>`;
+    }
+  });
+  document.getElementById("summary").innerHTML=s+`</tbody>`;
+  document.querySelectorAll(".ed").forEach(el=>el.onchange=()=>{
+    const w=WORKS[+el.dataset.i], f=el.dataset.f;
+    if(["done","rate","open","batch","b1e"].includes(f)){
+      const v=parseInt(el.value,10); if(isNaN(v))return;
+      const lo=(f==="rate"||f==="open"||f==="batch")?1:0;
+      w[f]=Math.min(f==="rate"?30:40,Math.max(lo,v));
+      if(f==="done") w.sHint=`${w.done+1}회차 기준`;
+    } else if(w.variant==="continue"&&w.alt&&["a","start"].includes(f)){
+      w.alt[f]=el.value;    // continue 시나리오가 켜져 있으면 대체 프로필 쪽을 수정
+    } else w[f]=el.value;
+    saveState(); render();
+  });
+  document.querySelectorAll(".fixL").forEach(el=>el.onclick=(e)=>{
+    e.preventDefault(); WORKS[+el.dataset.i].launch=el.dataset.d; saveState(); render();
+  });
+  document.querySelectorAll(".delb").forEach(el=>el.onclick=()=>{
+    if(WORKS.length<=1)return; WORKS.splice(+el.dataset.del,1); saveState(); render();
+  });
+
+  document.getElementById("notes").innerHTML=`<ul>
+   <li><b>공정 리드타임</b> — 인간 성우 47영업일 / AI 성우 25영업일 중 앞단 '영상·사운드 제작' 7영업일은 1차 영상 완료 시점에 소진. <b>승인 5영업일 + 영상 완성 5영업일(총 10영업일)은 회차마다 반복되지 않고, 3화 1차 영상 완성 시점에 딱 한 번만 걸리는 전 회차 공통 게이트</b>로 처리했습니다(3화 완성 전에는 어떤 회차도 더빙이 시작되지 않음). 따라서 <b>회차별 반복 잔여 공정 = 인간 30영업일 / AI 8영업일</b>로 계산했습니다. 인간 성우의 30영업일 안에 일본 스튜디오 약 2개월(발송 → 녹음 → 믹싱본 회수)이 포함된 것으로 봤습니다.</li>
+   <li><b>1차 배치</b> — 소녀바둑 6편 · 냐한 남자 4편 · 작두 3편(총 13편)을 일본 스튜디오에 발송, <b>2026-10-15 회수</b>. 이 편수까지는 계산이 아니라 <b>확정 도착일</b>로 처리합니다. 요약표에서 편수·도착일을 직접 수정할 수 있습니다.</li>
+   <li><b>2차 이후 배치</b> — 1차 배치 다음 회차부터 <b>4편씩</b> 모아 발송하고(요약표 '더빙 배치' 또는 상단 '더빙 배치 일괄'에서 변경 가능), 배치의 마지막 회차 1차 영상 완료 + 40영업일에 <b>배치 전체가 같은 날</b> 들어옵니다. AI 성우는 내부 제작이라 회차별 순차 완성입니다.</li>
+   <li><b>작품별 런칭일</b> — 기본값은 전체 목표 2026-12-21이고, 요약표 '목표 런칭일' 칸에서 <b>작품마다 다른 날짜</b>로 바꿀 수 있습니다. 콘텐츠 확정 마감은 각 작품의 런칭일 1주 전으로 자동 계산되고, 마감을 못 맞추는 작품에는 '최단 ○○로 맞추기' 링크가 떠서 한 번에 적용됩니다. 계단식(스태거드) 런칭을 짤 때 쓰세요.</li>
+   <li><b>탑승 판정</b> — 오픈 회차분의 더빙최종본이 <b>해당 작품 런칭일의 1주 전</b>까지 확보되면 탑승. '마감 여유'는 그 사이 영업일 수입니다(참고: 1차 영상 게이트 인간 10/16 · AI 11/17).</li>
+   <li><b>오늘 기준 자동 갱신</b> — 상단 D-day, 간트의 '오늘' 열 강조와 지난 주차 흐리게 처리는 접속한 날짜에 맞춰 자동으로 움직입니다. 다만 <b>완료 회차는 사람이 갱신</b>해야 하므로 '제작 현황 기준일'이 7일 이상 지나면 상단에 경고가 뜹니다.</li>
+   <li><b>영업일 캘린더</b> — 월~금에서 한국 공휴일 제외(추석 9/24·25·28, 개천절 대체 10/5, 한글날 10/9, 성탄절 12/25 등). 착수일이 주말·공휴일이면 다음 영업일로 이동합니다.</li>
+   <li><b>성우 방식 고정</b> — 소녀바둑·냐한 남자·작두는 <b>인간 성우 고정</b>입니다(요약표 '성우 방식'에서 자동/인간/AI로 변경 가능). 나머지는 자동 — 일본 스튜디오 1차 배치가 있는 작품만 인간 성우 후보로 보고, 오픈분이 12/14 안에 들어오면 인간, 아니면 AI로 배정됩니다. 상단 시나리오 카드의 '전부 인간 / 전부 AI'는 고정값보다 우선합니다.</li>
+   <li><b>제작팀 담당</b> — 용사가 돌아왔다 최민 / 작두 신규·인턴 / 나이트런 배종일 전담 / 내부 제작 후보 신규·인턴 / 외부 제작 후보 외부 스튜디오.</li>
+   <li><b>작두 — continue 시나리오</b> — 요약표 '작두' 행의 작가/담당 칸에 있는 드롭다운에서 'continue'를 선택하면, 배종일 작가가 11/1 재개 대신 지금(9/10)부터 바로 작두에 집중한다는 가정으로 작가·착수일이 바뀌고 나머지 계산(런칭일 등)이 그 값으로 다시 돌아갑니다. 동시에 배종일 작가가 겸하는 <b>나이트런</b> 행이 회색으로 흐려지며 "⛔ 작두 continue로 보류" 표시가 붙습니다 — 한 사람이 두 작품을 동시에 풀가동할 수는 없다는 전제입니다. 드롭다운을 '기본'으로 되돌리면 두 작품 모두 원래대로 돌아옵니다.</li>
+   <li><b>내부 제작 후보 / 외부 제작 후보</b> — 회차당 13영업일로 반영했습니다. 내부 제작 후보는 1회차 제작 착수일을 11/2로, 외부 제작 후보는 기존대로 10/5 착수(개천절 대체휴일이라 다음 영업일 10/6부터 실제 카운트)로 두었습니다.</li>
+   <li><b>작두 회차당 영업일 변경</b> — 완료된 1~3화는 그대로 두고, 4화 제작부터 회차당 13영업일로 반영했습니다(4화가 곧 착수일 11/1부터 시작하는 첫 회차라 자연스럽게 이 시점부터 적용됩니다).</li>
+   <li><b>시즌제 모드</b> — 상단 '연재 방식'에서 시즌제를 선택하면 각 작품이 시즌당 화수(기본 10화)만큼 오픈한 뒤, 지정한 휴지기간(기본 4주, 1주 단위)만큼 쉬었다가 다음 시즌을 엽니다. '↺ 자동 계산' 버튼을 누르면 전체 작품 평균 제작 속도 기준 <b>rest = 시즌화수 × (평균 회차당 영업일/5 − 공개 주기)</b> 공식으로 재고가 마르지 않는 추천값을 1주 단위로 계산해 채워줍니다. 파이프라인(확정본) 화면의 공급 차트에도 확정된 시즌 설정이 그대로 반영됩니다.</li>
+   <li><b>재고 부족 없는 날짜로 런칭일 자동 조정 (토글, 기본 꺼짐)</b> — 상단 체크박스를 켜면, 성우 방식·오픈 회차·공개 주기·시즌 설정·작품별 착수일 등 어떤 조건을 바꾸든, 표시 기간이 끝날 때까지 재고 부족(오픈 목표 &gt; 더빙 확보)이 한 번도 뜨지 않는 가장 이른 런칭일을 각 작품마다 자동으로 다시 찾아 적용합니다. 목표 런칭일을 기준으로 검색을 시작하되 마감(콘텐츠 확정)이나 재고 부족 중 무엇 때문에 밀렸는지는 '리스크·결정 필요 사항'에 구분해서 표시됩니다. <b>주의</b> — 공개 주기(주 1회 등)가 제작 속도보다 구조적으로 빠른 작품은, 표시 기간이 길수록(예: ~2027년 말) 40회차까지 재고가 절대 마르지 않을 날짜를 찾다 보니 런칭일이 아주 늦게 잡힐 수 있습니다. 이럴 땐 표시 기간을 줄이거나(예: ~2027년 1분기), 공개 주기를 늦추거나, 시즌제로 전환해 보세요. 끄면 예전처럼 콘텐츠 확정 마감만 기준으로 한 런칭일로 돌아갑니다.</li>
+   <li><b>공유 저장소</b> — HTML 상단 <code>SUPABASE_URL</code>·<code>SUPABASE_ANON_KEY</code> 두 줄을 채우면 모든 사람이 같은 값을 봅니다. 미설정이면 상태 칩이 노란 경고로 표시되고 입력값은 내 주소창에만 남습니다.</li>
+  </ul>`;
+}
+
+/* ---------- 상태 / 동기화 ---------- */
+const enc=(o)=>btoa(unescape(encodeURIComponent(JSON.stringify(o))));
+const dec=(t)=>JSON.parse(decodeURIComponent(escape(atob(t))));
+const currentState=()=>({v:3,conf:CONF,asof:key(ASOF),w:WORKS,o:{
+  buf:document.getElementById("buf").value, cad:document.getElementById("cad").value,
+  span:document.getElementById("span").value, scen:SCEN, serial:SERIAL,
+  seasonBatch:document.getElementById("seasonBatch").value, seasonRest:document.getElementById("seasonRest").value,
+  autoSafe:document.getElementById("autoSafe").checked}});
+function applyState(st){
+  if(!st||!Array.isArray(st.w)||!st.w.length) return false;
+  WORKS=st.w.map(w=>({n:"",a:"",done:0,rate:7,open:3,batch:4,voice:"auto",launch:"",b1e:0,b1d:"",start:"",...w}));
+  if(st.asof) ASOF=D(st.asof);
+  CONF = st.conf || null;
+  if(st.o){ ["buf","cad","span"].forEach(k=>{const el=document.getElementById(k);
+    if(el&&[...el.options].some(o=>o.value===st.o[k])) el.value=st.o[k];});
+    if(["auto","human","ai"].includes(st.o.scen)) SCEN=st.o.scen;
+    if(["regular","season"].includes(st.o.serial)) SERIAL=st.o.serial;
+    if(st.o.seasonBatch) document.getElementById("seasonBatch").value=st.o.seasonBatch;
+    if(st.o.seasonRest!=null && st.o.seasonRest!=="") document.getElementById("seasonRest").value=st.o.seasonRest;
+    document.getElementById("autoSafe").checked=!!st.o.autoSafe; }
+  document.getElementById("asof").value=key(ASOF);
+  document.getElementById("opnAll").value=WORKS[0].open||3;
+  document.getElementById("btcAll").value=WORKS[0].batch||4;
+  document.getElementById("serial").value=SERIAL;
+  updateSeasonUI();
+  return true;
+}
+let SKIP=false;
+const loadHash=()=>{ try{const m=location.hash.match(/s=([^&]+)/); return m?applyState(dec(m[1])):false;}catch(e){return false;} };
+const boardId=new URLSearchParams(location.search).get("board")||SB_ROW;
+const SB={on:!!(SUPABASE_URL&&SUPABASE_ANON_KEY), url:`${SUPABASE_URL}/rest/v1/${SB_TABLE}`,
+  hdr:{apikey:SUPABASE_ANON_KEY,Authorization:`Bearer ${SUPABASE_ANON_KEY}`,"Content-Type":"application/json"},
+  seen:null,editing:0,timer:null,busy:false};
+const chip=document.getElementById("sync");
+const setSync=(s,t)=>{chip.dataset.s=s;chip.textContent=t;};
+const hhmm=()=>new Date().toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"});
+async function sbPull(force){
+  if(!SB.on)return;
+  try{
+    const r=await fetch(`${SB.url}?id=eq.${encodeURIComponent(boardId)}&select=state,updated_at`,{headers:SB.hdr,cache:"no-store"});
+    if(!r.ok) throw new Error(r.status);
+    const rr=await r.json();
+    if(!rr.length){setSync("on","공유 켜짐 · 저장된 값 없음");return;}
+    if(!force&&rr[0].updated_at===SB.seen){setSync("on",`공유 켜짐 · ${hhmm()} 확인`);return;}
+    if(!force&&Date.now()-SB.editing<6000){setSync("busy","다른 사람 변경 있음 · 곧 반영");return;}
+    SB.seen=rr[0].updated_at;
+    if(applyState(rr[0].state)){render();setSync("on",`공유 켜짐 · ${hhmm()} 불러옴`);}
+  }catch(e){setSync("err","공유 저장소 연결 실패");}
+}
+async function sbPush(){
+  if(!SB.on)return; SB.busy=true; setSync("busy","저장 중…");
+  try{
+    const now=new Date().toISOString();
+    const r=await fetch(SB.url,{method:"POST",
+      headers:{...SB.hdr,Prefer:"resolution=merge-duplicates,return=representation"},
+      body:JSON.stringify({id:boardId,state:currentState(),updated_at:now})});
+    if(!r.ok) throw new Error(await r.text());
+    SB.seen=now; setSync("on",`공유 켜짐 · ${hhmm()} 저장됨`);
+  }catch(e){setSync("err","저장 실패 — 새로고침 후 재시도");}
+  finally{SB.busy=false;}
+}
+function saveState(){
+  SB.editing=Date.now();
+  if(SB.on){clearTimeout(SB.timer);SB.timer=setTimeout(sbPush,700);return;}
+  try{SKIP=true;location.hash="s="+enc(currentState());setTimeout(()=>SKIP=false,0);}catch(e){}
+}
+window.addEventListener("hashchange",()=>{if(SKIP||SB.on)return;if(loadHash())render();});
+
+/* ---------- 이벤트 ---------- */
+function switchTab(exec){
+  document.getElementById("execView").hidden=!exec;
+  document.getElementById("detailView").hidden=exec;
+  document.getElementById("tabExec").setAttribute("aria-selected",exec);
+  document.getElementById("tabDet").setAttribute("aria-selected",!exec);
+  if(!exec) setTimeout(()=>{const el=document.getElementById("todayCol"),sc=document.getElementById("scroller");
+    if(el&&sc) sc.scrollLeft=Math.max(0,el.offsetLeft-360);},30);
+}
+document.getElementById("tabExec").onclick=()=>switchTab(true);
+document.getElementById("tabDet").onclick=()=>switchTab(false);
+document.getElementById("theme").onclick=()=>{
+  const r=document.documentElement,d=r.getAttribute("data-theme")==="dark";
+  r.setAttribute("data-theme",d?"light":"dark");
+  document.getElementById("theme").textContent=d?"◐ 다크":"◑ 라이트";
+};
+/* ---------- 시즌제 휴지기간 추천값 계산 (버튼으로만 실행, 기본값은 4주 고정) ----------
+   시즌 B화를 오픈 주기(cad)로 풀면 시즌 길이는 B*cad주. 그 사이 평균 제작 속도(avgRate영업일/화)로
+   만들어지는 화수를 빼고 나면 부족분을 휴지기간 동안 채워야 함 → rest = B*(avgRate/5 - cad), 최소 0, 1주 단위 반올림 */
+function autoFillRest(){
+  const B=parseFloat(document.getElementById("seasonBatch").value)||10;
+  const cadence=parseFloat(document.getElementById("cad").value)||1;
+  const avgRate=WORKS.reduce((a,w)=>a+(w.rate||7),0)/Math.max(1,WORKS.length);
+  const rest=Math.max(0, Math.round(B*(avgRate/5-cadence)));
+  document.getElementById("seasonRest").value=rest;
+}
+function updateSeasonUI(){
+  const show=SERIAL==="season";
+  ["seasonSep","seasonBatchLab","seasonRestLab","seasonRestAuto"].forEach(id=>document.getElementById(id).hidden=!show);
+}
+document.getElementById("serial").onchange=(e)=>{
+  SERIAL=e.target.value; updateSeasonUI();
+  saveState(); render();
+};
+document.getElementById("seasonBatch").onchange=()=>{ saveState(); render(); };
+document.getElementById("seasonRest").onchange=()=>{ saveState(); render(); };
+document.getElementById("seasonRestAuto").onclick=()=>{ autoFillRest(); saveState(); render(); };
+document.getElementById("autoSafe").onchange=()=>{ saveState(); render(); };
+["buf","cad","span"].forEach(id=>document.getElementById(id).onchange=()=>{saveState();render();});
+document.getElementById("asof").onchange=(e)=>{if(e.target.value){ASOF=D(e.target.value);saveState();render();}};
+document.getElementById("opnAll").onchange=(e)=>{const v=parseInt(e.target.value,10);
+  if(v>=1&&v<=40){WORKS.forEach(w=>w.open=v);saveState();render();}};
+document.getElementById("btcAll").onchange=(e)=>{const v=parseInt(e.target.value,10);
+  if(v>=1&&v<=40){WORKS.forEach(w=>w.batch=v);saveState();render();}};
+document.getElementById("launchAll").onchange=(e)=>{const v=e.target.value;
+  if(v){WORKS.forEach(w=>w.launch=v);saveState();render();}};
+document.getElementById("pullB").onclick=()=>{SB.on?sbPull(true):(loadHash()&&render());};
+document.getElementById("addW").onclick=()=>{
+  WORKS.push({n:"새 작품",a:"담당 미정",done:0,rate:7,open:3,batch:4,voice:"auto",launch:"",b1e:0,b1d:"",start:key(TODAY),sHint:"1회차 기준"});
+  saveState(); render();
+};
+document.getElementById("resetW").onclick=()=>{
+  if(!confirm("입력값을 모두 초기 상태로 되돌립니다. 계속할까요?"))return;
+  WORKS=JSON.parse(JSON.stringify(DEFAULT_WORKS)); ASOF=D(DEFAULT_ASOF); SCEN="human"; CONF=null;
+  document.getElementById("buf").value="0"; document.getElementById("cad").value="1";
+  document.getElementById("asof").value=DEFAULT_ASOF;
+  document.getElementById("opnAll").value="3"; document.getElementById("btcAll").value="4";
+  document.getElementById("launchAll").value="";
+  SERIAL="season"; document.getElementById("serial").value="season";
+  document.getElementById("seasonBatch").value="10"; document.getElementById("seasonRest").value="4";
+  document.getElementById("autoSafe").checked=true;
+  updateSeasonUI();
+  saveState(); render();
+};
+document.getElementById("copyL").onclick=async(e)=>{
+  if(!SB.on) saveState();
+  const url=SB.on?location.origin+location.pathname+(boardId!==SB_ROW?`?board=${boardId}`:""):location.href;
+  try{await navigator.clipboard.writeText(url);}catch(err){prompt("아래 주소를 복사하세요",url);return;}
+  const b=e.target,t=b.textContent; b.textContent="✔ 복사됨"; setTimeout(()=>b.textContent=t,1600);
+};
+document.getElementById("expJ").onclick=()=>{
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(currentState(),null,2)],{type:"application/json"}));
+  a.download="anime-schedule-state.json"; a.click(); URL.revokeObjectURL(a.href);
+};
+document.getElementById("impJ").onclick=()=>document.getElementById("fileJ").click();
+document.getElementById("fileJ").onchange=(e)=>{
+  const f=e.target.files[0]; if(!f)return; const rd=new FileReader();
+  rd.onload=()=>{try{if(applyState(JSON.parse(rd.result))){saveState();render();}}
+                 catch(err){alert("불러오기 실패 — JSON 형식을 확인해 주세요.");}};
+  rd.readAsText(f); e.target.value="";
+};
+
+/* ---------- 시작 ---------- */
+document.getElementById("asof").value=DEFAULT_ASOF;
+document.getElementById("serial").value=SERIAL;
+updateSeasonUI();
+if(SB.on){
+  setSync("busy","공유 저장소 확인 중…"); render(); switchTab(false);
+  sbPull(true).then(()=>{setInterval(()=>{if(!SB.busy)sbPull(false);},SB_POLL_MS);});
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden)sbPull(false);});
+}else{
+  setSync("off","⚠ 공유 저장소 미설정 — 수정이 나에게만 보입니다");
+  loadHash(); render(); switchTab(false);
+}
+setInterval(()=>{const d=new Date();
+  const t=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  if(t!==key(TODAY)) location.reload();
+},60000);
+</script>
+</body>
+</html>
+
