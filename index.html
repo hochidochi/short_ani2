@@ -301,8 +301,10 @@ table.std tfoot td{font-weight:700;border-bottom:0;border-top:2px solid var(--li
    공유 저장소 (Supabase) — 아래 두 값을 채우면 모두가 같은 데이터를 봅니다.
    SQL은 '공정 기준' 탭 맨 아래에 있습니다.
    ========================================================================= */
-const SUPABASE_URL      = "https://znbuabcfjvlzulxnvuux.supabase.co";   // 예: "https://abcdefgh.supabase.co"
-const SUPABASE_ANON_KEY = "sb_publishable_V5IW1OvGcyHDAC4OtjhR6g_Y2a8nT8t";   // Publishable key (sb_publishable_...) 권장 · 예전 anon key(eyJ...)도 동작
+const SUPABASE_URL_RAW  = "https://znbuabcfjvlzulxnvuux.supabase.co";
+const SUPABASE_KEY_RAW  = "sb_publishable_V5IW1OvGcyHDAC4OtjhR6g_Y2a8nT8t";   // Publishable key (공개용) — secret key는 절대 넣지 말 것
+const SUPABASE_URL      = SUPABASE_URL_RAW.trim().replace(/\/+$/,"").replace(/\/rest\/v1$/,"");
+const SUPABASE_ANON_KEY = SUPABASE_KEY_RAW.trim().replace(/^(sb_publishable_)+/,"sb_publishable_");   // 앞부분이 두 번 붙여넣어져도 자동 정리
 const T_WORKS = "anime_works";
 const T_CONF  = "anime_config";
 const POLL_MS = 10000;
@@ -1297,7 +1299,15 @@ const SB={on:!!(SUPABASE_URL&&SUPABASE_ANON_KEY)};
 const PENDING={}, SEEN={}, TIMERS={};
 let CONF_SEEN=null;
 const hhmm=()=>new Date().toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"});
-function setSync(s,t){const c=$("sync");c.dataset.s=s;c.textContent=t;}
+function setSync(s,t,tip){const c=$("sync");c.dataset.s=s;c.textContent=t;c.title=tip||"";}
+function errMsg(e){
+  const m=String(e&&e.message||e), code=(m.match(/^(\d{3})/)||[])[1];
+  if(!code) return ["주소(URL)에 접속하지 못했어요 — 인터넷 또는 URL 확인",m];
+  if(code==="401") return ["키가 맞지 않아요 (401) — Publishable key 확인",m];
+  if(code==="404") return ["테이블을 못 찾았어요 (404) — SQL 실행 여부 확인",m];
+  if(code==="403"||/42501|permission/i.test(m)) return ["권한이 없어요 (403) — SQL의 grant 줄 실행 확인",m];
+  return [`연결 오류 (${code})`,m];
+}
 async function sb(method,table,q="",body,prefer){
   const r=await fetch(`${SUPABASE_URL}/rest/v1/${table}${q}`,{method,cache:"no-store",
     headers:{apikey:SUPABASE_ANON_KEY,...(SUPABASE_ANON_KEY.startsWith("eyJ")?{Authorization:`Bearer ${SUPABASE_ANON_KEY}`}:{}),"Content-Type":"application/json",...(prefer?{Prefer:prefer}:{})},
@@ -1419,9 +1429,9 @@ document.querySelectorAll(".tabs button").forEach(b=>b.addEventListener("click",
     if(r.empty) await replaceAll(clone(DEFAULT_WORKS).map(normW),clone(DEFAULT_CONF));
     runMigrations();
     setSync("on",`공유 중 · ${hhmm()} 불러옴`);
-  }catch(e){ if(!WORKS.length) WORKS=clone(DEFAULT_WORKS).map(normW); setSync("err","공유 저장소 연결 실패 — URL·키·테이블을 확인해 주세요"); }
+  }catch(e){ console.error("Supabase 연결 오류:",e); if(!WORKS.length) WORKS=clone(DEFAULT_WORKS).map(normW); const [t,tip]=errMsg(e); setSync("err",`공유 저장소 연결 실패 — ${t}`,tip); }
   render();
-  const tick=async()=>{ try{ const r=await pullAll(false); if(r.changed) safeRender(); if(!Object.values(PENDING).some(a=>a.length)) setSync("on",`공유 중 · ${hhmm()} 확인`);}catch(e){ setSync("err","공유 저장소 연결 끊김 — 다시 시도 중"); } };
+  const tick=async()=>{ try{ const r=await pullAll(false); if(r.changed) safeRender(); if(!Object.values(PENDING).some(a=>a.length)) setSync("on",`공유 중 · ${hhmm()} 확인`);}catch(e){ const [t,tip]=errMsg(e); setSync("err",`공유 저장소 연결 끊김 — ${t}`,tip); } };
   setInterval(tick,POLL_MS);
   document.addEventListener("visibilitychange",()=>{ if(!document.hidden) tick(); });
 })();
