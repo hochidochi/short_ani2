@@ -490,6 +490,10 @@ async function runMigrations(){
   render();
   if(SB.on&&(M.dirty.size||M.del.size||M.conf)){
     setSync("busy","데이터 정리해서 저장 중…");
+    // 다른 사람이 먼저 같은 정리를 끝냈으면 덮어쓰지 않고 그 결과를 불러옴
+    const rc=await sb("GET",T_CONF,"?id=eq.default&select=data");
+    const rm=rc&&rc.length&&rc[0].data&&Array.isArray(rc[0].data.migr)?rc[0].data.migr:[];
+    if(CONF.migr.every(x=>rm.includes(x))){ await pullAll(true); render(); return; }
     const now=new Date().toISOString(), ids=new Set(WORKS.map(w=>w.id));
     for(const id of M.del) if(!ids.has(id)&&REMOTE_IDS.has(id)) await sb("DELETE",T_WORKS,`?id=eq.${encodeURIComponent(id)}`);
     const rows=WORKS.filter(w=>M.dirty.has(w.id)).map(w=>({id:w.id,pos:w.pos||0,data:w,updated_at:now}));
@@ -1395,7 +1399,8 @@ function openPop(w,S,k,sk,anchor){
     <p class="note">기본 ${c.base}일${sk==="prod1"?" (작품 설정값)":""} · 주말·공휴일은 세지 않습니다</p>
     ${c.work?"":`<label class="chk"><input type="checkbox" id="pAll"> ${nextLab} 같은 소요일 적용</label>`}`}
     <div class="row"><span>완료일 지정</span><input class="in" type="date" id="pF" value="${o.f||""}"></div>
-    <p class="note">실제로 끝난 날이나 외부와 확정한 날짜. 주말·휴일이어도 그 날짜로 기록하고, 다음 단계는 다음 영업일부터 시작해요.</p>
+    <p class="note">실제로 끝난 날이나 확정한 날짜. 앞 단계보다 먼저 끝나도 그대로 지켜요(병행으로 계산). 주말·휴일이어도 그 날짜로 기록해요.</p>
+    <label class="chk"><input type="checkbox" id="pSlip"${o.follow?" checked":""}> 앞 단계가 늦어지면 이 날짜도 뒤로 밀기</label>
     <div class="row"><span>메모</span><input class="in" type="text" id="pM" style="flex:1;min-width:0" value="${esc(o.m||"")}" placeholder="예: 작가 수정 요청으로 2일 지연"></div>
     <div class="row" style="border-top:1px solid var(--line);padding-top:10px"><span>완료</span>${o.ok
       ?`<span class="tag good" style="width:auto">완료 ${ymd(c.e)}</span><button type="button" class="q" id="pUndo">완료 취소</button>`
@@ -1421,6 +1426,7 @@ function openPop(w,S,k,sk,anchor){
       if(f!==undefined){ if(f) x.f=f; else delete x.f; } return x;};
     const put=(kk,x)=>Object.keys(x).length?{p:["ov",kk],v:x}:{p:["ov",kk],del:true};
     const x0=mk(o,di?dvn:null,fv); const mv=$("pM").value.trim(); if(mv) x0.m=mv; else delete x0.m;
+    if(x0.f){ if($("pSlip")&&$("pSlip").checked){ delete x0.lock; x0.follow=true; } else { x0.lock=true; delete x0.follow; } } else { delete x0.lock; delete x0.follow; }   // 직접 넣은 완료일은 그대로 지킴 (앞 단계와 병행한 것으로 봄)
     const ps=[put(K,x0)];
     if($("pAll")&&$("pAll").checked&&!isNaN(dvn)){
       const targets=bt?S.BT.filter(([a])=>a>bt[0]).map(([a])=>a):[...Array(S.N-k)].map((_,i)=>k+1+i);
