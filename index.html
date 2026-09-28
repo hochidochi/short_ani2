@@ -387,8 +387,8 @@ const DEFAULT_CONF={
     {k:"prod1",   n:"영상 1차 제작",     s:"영상 1차",    team:"내부 제작팀",      v:{ih:7, ia:7, eh:5, ea:5},  sc:"ep",    seq:true},    // 기본값 — 작품별 '회차당 1차 제작'이 우선
     {k:"author",  n:"작가 승인",         s:"작가 승인",   team:"작가",             v:{ih:5, ia:5, eh:10,ea:10}, sc:"ep",    upto:3},      // 내부: 작가+내부 = 10
     {k:"intAppr", n:"내부 승인",         s:"내부 승인",   team:"내부관계자",       v:{ih:5, ia:5, eh:2, ea:2},  sc:"ep",    upto:{i:3,e:0}, conc:"ext"},   // 내부: 작가+내부 = 10 (1~3화) · 외부: 1~3화 병렬, 4화부터 2일   // 내부: 1~3화만 · 외부: 전 회차 (1~3화는 작가 승인과 병렬)
-    {k:"ratingFb",n:"등급 분류 피드백",   s:"등급 피드백", team:"내부관계자",       v:{ih:2, ia:2, eh:2, ea:2},  sc:"ep",    conc:"author"},   // 1~3화: 승인과 병렬(추가 기간 없음) · 4화부터: 따로 2일
-    {k:"prodF",   n:"영상 최종 수정",     s:"영상 최종",   team:"내부 제작팀",      v:{ih:5, ia:5, eh:5, ea:5},  sc:"ep"},
+    {k:"ratingFb",n:"등급 분류 피드백",   s:"등급 피드백", team:"내부관계자",       v:{ih:2, ia:2, eh:2, ea:2},  sc:"ep",    upto:3, conc:"author"},   // 1~3화만 · 승인과 병렬 (추가 기간 없음)
+    {k:"prodF",   n:"영상 최종 수정",     s:"영상 최종",   team:"내부 제작팀",      v:{ih:5, ia:5, eh:5, ea:5},  sc:"ep",    upto:{i:3,e:0}},   // 내부: 1~3화만 · 외부: 전 회차
     {k:"trans",   n:"대사 번역",         s:"대사 번역",   team:"GW content",       v:{ih:5, ia:5, eh:5, ea:5},  sc:"batch"},  // 5회차씩
     {k:"script",  n:"성우 대사집 확정",   s:"대사집 확정", team:"사운드 스튜디오",  v:{ih:7, ia:0, eh:7, ea:0},  sc:"batch"},  // ┐
     {k:"subtr",   n:"자막 번역",         s:"자막 번역",   team:"GW content",       v:{ih:2, ia:2, eh:2, ea:2},  sc:"batch", par:true},   // │ 병렬 (5회차씩)
@@ -714,6 +714,12 @@ function runMigrations0(){
       for(let k=1;k<=t.eps;k++){ const kk=`${k}:prod1`, o=(w.ov||{})[kk]; if(!o||!o.f) ps.push({p:["ov",kk],v:{...(o||{}),...clone(B1_TIMELINE.perEp.prod1)}}); }
       if(ps.length) edit(w.id,ps); });
     CONF.migr.push("b1-prod1-restore"); dirty=true;
+  }
+  if(!has("upto-0928b")){   // 9/28 시트: 등급 피드백 1~3화만(병렬·기간 없음) · 내부 영상 최종 수정 1~3화만
+    const fb=CONF.stages.find(x=>x.k==="ratingFb"); if(fb){ fb.upto=3; fb.conc="author"; fb.sc="ep"; }
+    const pf=CONF.stages.find(x=>x.k==="prodF"); if(pf) pf.upto={i:3,e:0};
+    CONF.migr.push("upto-0928b"); dirty=true;
+    if(has("owners-2609b")) applyPlan(planCoverage());
   }
   if(dirty) saveConf();
 }
@@ -1461,8 +1467,8 @@ function renderStd(){
     <p class="hint" style="margin:10px 0 0">
     <b>사운드 통으로 30일</b>: 대사집 확정 7 + 성우 더빙 18 + 믹싱 5 = 30일(5회차씩). 첫 묶음에만 성우 캐스팅 2일이 더해집니다. AI 성우는 믹싱 2일만 있어요.<br>
     <b>병렬</b>: 뒤 단계를 막지 않고 동시에 진행하며, 자막 최종 영상본 전까지만 끝나면 됩니다 (자막 번역).<br>
-    <b>동시 시작</b>: 1~3화는 작가 승인과 같은 날 시작해서 추가 기간이 없어요. 등급 분류 피드백(내부·외부)과 외부 제작의 내부 승인이 여기에 해당하고, 4화부터는 각각 2일씩 따로 걸려요.<br>
-    <b>적용 회차</b>: 작가 승인은 1~3화만. 내부 승인은 내부 제작 1~3화만, 외부 제작은 전 회차(1~3화는 작가 승인과 병렬, 4화부터는 2일 단독). <b>${BATCH}회차씩</b>: 묶음 안 모든 회차가 준비돼야 시작하고 묶음 전체가 같은 날 끝납니다.</p></div>
+    <b>동시 시작</b>: 1~3화는 작가 승인과 같은 날 시작해서 추가 기간이 없어요. 등급 분류 피드백(1~3화만)과 외부 제작의 내부 승인(4화부터는 2일)이 여기에 해당해요.<br>
+    <b>적용 회차</b>: 작가 승인·등급 피드백은 1~3화만. 내부 승인과 영상 최종 수정은 내부 제작 1~3화만, 외부 제작은 전 회차. <b>${BATCH}회차씩</b>: 묶음 안 모든 회차가 준비돼야 시작하고 묶음 전체가 같은 날 끝납니다.</p></div>
   <h2>오픈 규칙</h2>
   <div class="card"><div class="rules">
     <span>런칭 시 <b>${OPEN_K}화</b> 동시 오픈</span><span>이후 <b>주 1회</b></span><span><b>휴재 없음</b> — 완결까지 끊기지 않는 가장 이른 날로 런칭일 자동 결정</span>
