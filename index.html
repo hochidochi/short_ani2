@@ -698,6 +698,13 @@ function runMigrations0(){
     CONF.migr.push("ratingfb-ep-0928"); dirty=true;
     if(has("owners-2609b")) applyPlan(planCoverage());
   }
+  if(!has("b1-prodF-1004")){   // 요청: 1차 묶음 영상 최종 완성일 10/4
+    B1_TIMELINE.works.forEach(t=>{ const w=WORKS.find(x=>x.n===t.n); if(!w) return; const ps=[];
+      for(let k=1;k<=t.eps;k++){ const kk=`${k}:prodF`, o=(w.ov||{})[kk]||{}; if(o.ok) continue;
+        ps.push({p:["ov",kk],v:{...o,f:"2026-10-04",m:"영상 최종 완성 10/4 (일) — 다음 단계는 10/6(화)부터 (10/5 개천절 대체공휴일)"}}); }
+      if(ps.length) edit(w.id,ps); });
+    CONF.migr.push("b1-prodF-1004"); dirty=true;
+  }
   if(dirty) saveConf();
 }
 const normW=(w)=>(w=>({...w,voice:w.voice==="ai"?"ai":"human",cont:w.cont!==false}))({n:"새 작품",owner:"",voice:"human",done:0,rate:7,start:key(TODAY),b1:BATCH,total:20,
@@ -733,7 +740,7 @@ function batchesOf(w,N){
   while(a<=N){ const b=Math.min(N,a+size-1); out.push([a,b]); a=b+1; size=BATCH; }
   return out;
 }
-const fixD=(f)=>snapBD(D(f));   // 지정 날짜가 휴일이면 다음 영업일로
+const fixD=(f)=>D(f);   // 지정한 완료일은 주말·휴일이어도 그대로 — 다음 단계는 그 다음 영업일부터
 const ovKey=(c,s,k)=>c&&c.work?`w:${s.k}`:c&&c.batch?`${c.batch[0]}:${s.k}`:`${k}:${s.k}`;
 
 /* 제작 중단: w.pauses=[{ep, from, resume}] — resume이 없으면 그 회차부터 '재개 미정' */
@@ -1378,7 +1385,7 @@ function openPop(w,S,k,sk,anchor){
     <p class="note">기본 ${c.base}일${sk==="prod1"?" (작품 설정값)":""} · 주말·공휴일은 세지 않습니다</p>
     ${c.work?"":`<label class="chk"><input type="checkbox" id="pAll"> ${nextLab} 같은 소요일 적용</label>`}`}
     <div class="row"><span>완료일 지정</span><input class="in" type="date" id="pF" value="${o.f||""}"></div>
-    <p class="note">실제로 끝난 날이나 외부와 확정한 날짜. 휴일이면 다음 영업일로 맞춥니다.</p>
+    <p class="note">실제로 끝난 날이나 외부와 확정한 날짜. 주말·휴일이어도 그 날짜로 기록하고, 다음 단계는 다음 영업일부터 시작해요.</p>
     <div class="row"><span>메모</span><input class="in" type="text" id="pM" style="flex:1;min-width:0" value="${esc(o.m||"")}" placeholder="예: 작가 수정 요청으로 2일 지연"></div>
     <div class="row" style="border-top:1px solid var(--line);padding-top:10px"><span>완료</span>${o.ok
       ?`<span class="tag good" style="width:auto">완료 ${ymd(c.e)}</span><button type="button" class="q" id="pUndo">완료 취소</button>`
