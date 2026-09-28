@@ -1318,9 +1318,9 @@ function renderProd(){
           <span class="bl">${a}~${b}화</span><span class="dt">${mdY(c.e)}</span><span class="du">${duTxt(c,late)}${c.m?` <i class="mm">메모</i>`:""}</span></button></td>`;
         return;
       }
-      if(c.done&&c.kind!=="fix"&&c.kind!=="ok"){ h+=`<td>${ckBtn(c,k,s)}<button type="button" class="cl done" data-ep="${k}" data-s="${s.k}"><span class="dt">완료</span><span class="du">1차 제작 끝${c.m?` <i class="mm">메모</i>`:""}</span></button></td>`; return; }
+      if(c.done&&c.kind!=="fix"&&c.kind!=="ok"){ h+=`<td>${ckBtn(c,k,s)}<button type="button" class="cl ok" data-ep="${k}" data-s="${s.k}" title="${esc(s.n)} ${k}화 · 완료"><span class="dt">완료</span><span class="du">1차 제작 끝${c.m?` <i class="mm">메모</i>`:""}</span></button></td>`; return; }
       const late=bc&&!c.done?bdDiff(bc.e,c.e):0;
-      h+=`<td>${ckBtn(c,k,s)}<button type="button" class="cl ${c.kind}${stCls(c)}" data-ep="${k}" data-s="${s.k}" title="${esc(s.n)} ${k}화 · ${c.s?ymd(c.s)+" ~ ":""}${ymd(c.e)}${c.m?"\n"+esc(c.m):""}">
+      h+=`<td>${ckBtn(c,k,s)}<button type="button" class="cl ${c.done?"ok":c.kind}${stCls(c)}" data-ep="${k}" data-s="${s.k}" title="${esc(s.n)} ${k}화 · ${c.s?ymd(c.s)+" ~ ":""}${ymd(c.e)}${c.m?"\n"+esc(c.m):""}">
         <span class="dt">${mdY(c.e)}</span><span class="du">${c.done?"완료":duTxt(c,late)}${c.m?` <i class="mm">메모</i>`:""}</span></button></td>`;
     });
     h+=`<td class="rdc">${mdY(E.ready)}</td>`;
