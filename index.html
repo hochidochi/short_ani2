@@ -157,6 +157,10 @@ tr.pzrow td{background:repeating-linear-gradient(135deg,#E1E2DD 0 5px,#EEEFEB 5p
 .epadd{display:flex;align-items:center;gap:8px;margin:10px 0 0;flex-wrap:wrap}
 .epadd .sp{flex:1}
 .epadd .btn:disabled{opacity:.4;cursor:default}
+.age{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 4px;margin-left:6px;border-radius:9px;
+  font-size:10px;font-weight:800;color:#fff;vertical-align:1px;letter-spacing:-.02em;line-height:1}
+.age.aall{background:#2E9B4E} .age.a12{background:#2F6FD0} .age.a15{background:#E0A11B} .age.a18{background:#D23A2F}
+.wlist button.wi[aria-current="true"] .age{box-shadow:0 0 0 1.5px #fff}
 .cal .far{color:var(--ink2);font-weight:700;font-size:14px}
 .legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12px;color:var(--ink2);margin:10px 0 0}
 .legend i{display:inline-block;width:18px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:6px}
@@ -851,6 +855,10 @@ function staffOrder(){
 const staffRank=(w)=>staffOrder().indexOf(w.id);
 const isHeld=(w)=>!!holdOf(w);   // 재개일 없이 중단된 작품 — 런칭 미정, 연재 편성에서 제외
 const ACT=()=>WORKS.filter(w=>!isHeld(w));
+/* 연령 등급 (작품 정보) */
+const AGE_OPTS=[["","미정"],["all","전체 이용가"],["12","12세 이용가"],["15","15세 이용가"],["18","18세 이용가"]];
+const ageBadge=(w)=>w.age?`<span class="age a${w.age}" title="${AGE_OPTS.find(a=>a[0]===w.age)[1]}">${w.age==="all"?"전체":w.age}</span>`:"";
+const ageSel=(id,v,attr)=>`<select class="in" ${attr||""} id="${id||""}">${AGE_OPTS.map(([k,t])=>`<option value="${k}"${(v||"")===k?" selected":""}>${t}</option>`).join("")}</select>`;
 /* 담당 미정 · 제작 중단 표시 */
 const tbdTag=(w,sm)=>w.tbd?`<span class="tag tbd"${sm?' style="font-size:10px;padding:0 5px"':""}>담당 미정</span>`:"";
 const pauseOf=(w)=>(w.pauses||[]).filter(p=>p.ep>(+w.done||0)||p.resume).sort((a,b)=>a.ep-b.ep)[0]||null;
@@ -1064,7 +1072,7 @@ function renderOpen(){
     h+=`<h2>월별 신규 오픈</h2><div class="strip">`;
     const card=(label,a)=>`<div class="mon"><div class="ml">${label}</div>
         <div class="mn">${a.length}<small>작품</small></div>
-        <ul>${a.map(({w,V})=>`<li><span><span class="lnd ${lineOf(w)}"></span>${esc(w.n)} ${tbdTag(w,1)}</span><span>${label.includes("이후")?ymd(V.L).slice(2):md(V.L)}</span></li>`).join("")}</ul></div>`;
+        <ul>${a.map(({w,V})=>`<li><span><span class="lnd ${lineOf(w)}"></span>${esc(w.n)}${ageBadge(w)} ${tbdTag(w,1)}</span><span>${label.includes("이후")?ymd(V.L).slice(2):md(V.L)}</span></li>`).join("")}</ul></div>`;
     const mw=launchBy.map((a,i)=>[a,i]).filter(([a])=>a.length);
     h+=mw.map(([a,i])=>card(`${months[i].y}년 ${months[i].m}월`,a)).join("");
     if(after.length) h+=card(`${YEND+1}년 이후`,after);
@@ -1082,7 +1090,7 @@ function renderOpen(){
   h+=`<tr class="sum last"><th class="rl">연재 중 <span class="hint" style="font-weight:400">(빨강: ${MIN_ON_AIR}작품 미만인 주 있음)</span></th>`+onAir.map((n,i)=>`<td class="c${yb(i)}${n?"":" z"}${lowM.has(i)?" low":""}" style="font-size:13px;font-weight:600;color:var(--ink2)" ${lowM.has(i)?`title="${MIN_ON_AIR}작품 미만인 주가 있습니다"`:""}>${n||"–"}</td>`).join("")+`</tr>`;
   rows.forEach(({w,S,V},ri)=>{
     const far=mi(V.L)>=NM;
-    h+=`<tr class="ln-${lineOf(w)}${LAST_EDIT&&LAST_EDIT.id===w.id&&Date.now()-LAST_EDIT.t<60000?" flash":""}"><th class="rl"><button type="button" class="nm" data-go="${w.id}" title="제작 일정 보기">${esc(w.n)}</button>
+    h+=`<tr class="ln-${lineOf(w)}${LAST_EDIT&&LAST_EDIT.id===w.id&&Date.now()-LAST_EDIT.t<60000?" flash":""}"><th class="rl"><button type="button" class="nm" data-go="${w.id}" title="제작 일정 보기">${esc(w.n)}${ageBadge(w)}</button>
       ${w.tbd||pauseOf(w)?`<span class="mt" style="margin-top:1px">${tbdTag(w,1)}${pauseOf(w)?`<span class="tag pzt" style="font-size:10px;padding:0 5px">${esc(pauseShort(w))}</span>`:""}</span>`:""}<span class="mt"><span class="ln ${lineOf(w)}">${lineOf(w)==="ext"?"외부":"내부"}</span>${far?ymd(V.L).slice(2):md(V.L)} 런칭${FORCE&&V.hiatus?` · <span style="color:var(--hia);font-weight:600">휴재 ${V.hiatus}주</span>`:""}</span></th>`;
     cellsOf[ri].forEach((c,i)=>{
       const cl=(i===nowM?" now":"")+yb(i)+(c.g&&c.n?" gap":"");
@@ -1098,7 +1106,7 @@ function renderOpen(){
   });
   WORKS.filter(isHeld).sort((a,b)=>(isHire(holdOf(a))?1:0)-(isHire(holdOf(b))?1:0)||(a.pos||0)-(b.pos||0)).forEach(w=>{   // 재개 미정으로 중단된 작품: 중단 월부터 끝까지 '중단'
     const S=schedule(w), p=holdOf(w), pm=mi(D(p.from)), pf=S.done>0?dataM:Math.max(0,mi(S.start0));
-    h+=`<tr class="ln-${lineOf(w)} held"><th class="rl"><button type="button" class="nm" data-go="${w.id}" title="제작 일정 보기">${esc(w.n)}</button>
+    h+=`<tr class="ln-${lineOf(w)} held"><th class="rl"><button type="button" class="nm" data-go="${w.id}" title="제작 일정 보기">${esc(w.n)}${ageBadge(w)}</button>
       <span class="mt" style="margin-top:1px">${tbdTag(w,1)}<span class="tag pzt" style="font-size:10px;padding:0 5px">${esc(pauseShort(w))}</span></span>
       <span class="mt"><span class="ln ${lineOf(w)}">${lineOf(w)==="ext"?"외부":"내부"}</span>런칭 미정</span></th>`;
     months.forEach((_,i)=>{ const cl=(i===nowM?" now":"")+yb(i);
@@ -1215,7 +1223,7 @@ function renderProd(){
   const w=WORKS.find(x=>x.id===SEL), S=schedule(w), B=schedule(w,false);
   let h=`<div class="prodlay"><nav class="wlist" aria-label="작품 목록">`;
   WORKS.forEach(x=>{const s=schedule(x);
-    h+=`<button type="button" class="wi" data-w="${x.id}" aria-current="${x.id===SEL}"><b>${esc(x.n)}</b>
+    h+=`<button type="button" class="wi" data-w="${x.id}" aria-current="${x.id===SEL}"><b>${esc(x.n)}${ageBadge(x)}</b>
       ${x.tbd||pauseOf(x)?`<span class="ws">${tbdTag(x,1)}${pauseOf(x)?`<span class="tag pzt" style="font-size:10px;padding:0 5px">${esc(pauseShort(x))}</span>`:""}</span>`:""}<span class="ws"><span class="lnd ${lineOf(x)}"></span>${s.held?`<span style="font-weight:600">런칭 미정</span>`:`${ymd(s.L).slice(2)} 런칭`}${x.voice==="ai"?" · AI 성우":""}</span></button>`;});
   h+=`<button type="button" class="btn add" id="addW">+ 작품 추가</button></nav><div>`;
 
@@ -1226,11 +1234,12 @@ function renderProd(){
   const CE=S.held?null:S.eps[S.crit];
   h+=`<div class="whead">
     <div class="wtitle"><input data-f="n" value="${esc(w.n)}" size="${Math.max(6,w.n.length+2)}" aria-label="작품명">
-      <span class="ln ${lineOf(w)}" style="font-size:11px;padding:1px 7px">${LINE_LABEL[lineOf(w)]}</span>${tbdTag(w)}${pauseOf(w)?`<span class="tag pzt">${esc(pauseShort(w))}</span>`:""}<span class="vo ${w.voice==="ai"?"ai":"human"}">${w.voice==="ai"?"AI 성우":"인간 성우"}</span>
+      ${ageBadge(w)}<span class="ln ${lineOf(w)}" style="font-size:11px;padding:1px 7px">${LINE_LABEL[lineOf(w)]}</span>${tbdTag(w)}${pauseOf(w)?`<span class="tag pzt">${esc(pauseShort(w))}</span>`:""}<span class="vo ${w.voice==="ai"?"ai":"human"}">${w.voice==="ai"?"AI 성우":"인간 성우"}</span>
       <span class="sp"></span><button type="button" class="btn danger" id="delW">작품 삭제</button></div>
     <div class="fgrid">
       <div class="gl">제작</div><div class="fields">
         <label>제작 라인<select class="in" data-sel="line"><option value="int"${lineOf(w)==="int"?" selected":""}>내부 제작</option><option value="ext"${lineOf(w)==="ext"?" selected":""}>외부 제작</option></select></label>
+        <label>연령 등급${ageSel("",w.age,'data-sel="age"')}</label>
         <label>성우<select class="in" data-sel="voice"><option value="human"${w.voice!=="ai"?" selected":""}>인간 성우</option><option value="ai"${w.voice==="ai"?" selected":""}>AI 성우</option></select></label>
         ${f("담당자","owner","text")}
         ${f("1차 제작 완료 회차","done","number",`min="0" max="${S.N}"`)}
@@ -1329,6 +1338,7 @@ function renderProd(){
   });
   document.querySelectorAll("#v-prod [data-sel]").forEach(el=>el.onchange=()=>{
     if(el.dataset.sel==="voice"){ edit(w.id,[{p:["voice"],v:el.value}]); return; }
+    if(el.dataset.sel==="age"){ edit(w.id,[el.value?{p:["age"],v:el.value}:{p:["age"],del:true}]); return; }
     if(el.dataset.sel==="cont"){ edit(w.id,[{p:["cont"],v:el.value==="1"}]); return; }
     const ext=el.value==="ext", tmp={...w,team:ext?{...(w.team||{}),prod1:"외부 제작사",prodF:"외부 제작사"}:{}};
     const ps=ext?[{p:["team","prod1"],v:"외부 제작사"},{p:["team","prodF"],v:"외부 제작사"},{p:["line"],v:"ext"}]
@@ -1566,6 +1576,7 @@ function addWork(ev){
   pop.innerHTML=`<h4>작품 추가</h4><p class="ps">나중에 제작 일정 탭에서 모두 바꿀 수 있어요</p>
     <div class="row"><span>작품명</span><input class="in" id="nwN" style="flex:1" value="새 작품"></div>
     <div class="row"><span>제작 라인</span><select class="in" id="nwL"><option value="int">내부 제작</option><option value="ext">외부 제작</option></select></div>
+    <div class="row"><span>연령 등급</span>${ageSel("nwG","")}</div>
     <div class="row"><span>성우</span><select class="in" id="nwV"><option value="human">인간 성우 (기본)</option><option value="ai">AI 성우</option></select></div>
     <div class="row"><span>착수일</span><input class="in" type="date" id="nwS" value="${key(nextBD(TODAY))}"></div>
     <div class="row"><span>총 회차</span><input class="in n" type="number" id="nwT" min="1" max="300" value="20"></div>
@@ -1577,7 +1588,8 @@ function addWork(ev){
   $("nwA").onclick=()=>{
     const line=$("nwL").value, voice=$("nwV").value, n=$("nwN").value.trim()||"새 작품";
     const base={line,voice}; const w0={...base,team:line==="ext"?{prod1:"외부 제작사",prodF:"외부 제작사"}:undefined};
-    createWork({n,line,voice,start:key(snapBD(D($("nwS").value||key(TODAY)))),total:clamp(parseInt($("nwT").value,10)||20,1,300),
+    const age=$("nwG").value;
+    createWork({n,line,voice,...(age?{age}:{}),start:key(snapBD(D($("nwS").value||key(TODAY)))),total:clamp(parseInt($("nwT").value,10)||20,1,300),
       rate:defRate(w0),owner:line==="ext"?"외부 제작사":"",...(line==="ext"?{team:{prod1:"외부 제작사",prodF:"외부 제작사"}}:{})});
     closePop();
   };
