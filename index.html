@@ -827,7 +827,7 @@ function scheduleCore(w,useOv=true){
   for(let k=1;k<=N;k++){ eps[k].ready=prev[k]; eps[k].need=addBD(prev[k],+CONF.lockBD||0); }
 
   /* 휴재 없는 최단 런칭: open_k = L + 7·max(0,k-3) 이 모든 회차에서 need_k 이상 + 런칭 전 조건 */
-  const K=Math.min(OPEN_K,N), T=D(w.launch||"2026-12-21");
+  const K=Math.min(OPEN_K,N), T=w.launchAuto?D("2026-01-05"):D(w.launch||"2026-12-21");   // launchAuto: 목표일 없이 가장 빠른 날
   let L=T;
   for(let g=0;g<520;g++){
     let bad=false;
@@ -882,7 +882,7 @@ const MIN_ON_AIR=2;
 const PLAN_END="2028-12-25";            // 편성 기간 끝 (월간표 마지막 월요일)
 const NEW_RATE=13;                      // 신규 프로젝트 회차당 1차 제작(영업일) — 기존 내부·외부 후보와 동일
 const monOnOrAfter=(d)=>{let x=d;while(x.getUTCDay()!==1)x=addDays(x,1);return x;};
-const lminOf=(w)=>schedule({...w,launch:"2026-01-05"}).L;       // 목표일 제약 없이 가장 이른 런칭
+const lminOf=(w)=>schedule({...w,launch:"2026-01-05",launchAuto:true}).L;       // 목표일 제약 없이 가장 이른 런칭
 /* 연재 기간(일): 최소 회차까지. '계속 연재' 작품은 CONF.contCount가 켜져 있으면 편성 기간 끝까지 연재 중으로 봄 */
 const serialDays=(w)=>{const N=clamp(+w.total||1,1,300);
   return CAD_D*Math.max(0,N-Math.min(OPEN_K,N));};
@@ -947,7 +947,7 @@ function applyPlan(P){
   P.changes.forEach(c=>{
     const w=c.w;
     edit(w.id,c.shifted
-      ?[{p:["launch"],v:key(c.to)},{p:["launchByPlan"],v:true},...(w.launchByPlan?[]:[{p:["launch0"],v:w.launch||"2026-12-21"}])]
+      ?[{p:["launch"],v:key(c.to)},{p:["launchByPlan"],v:true},{p:["launchAuto"],del:true},...(w.launchByPlan?[]:[{p:["launch0"],v:w.launch||"2026-12-21"}])]
       :[{p:["launch"],v:w.launch0||"2026-12-21"},{p:["launchByPlan"],del:true},{p:["launch0"],del:true}]);
   });
   P.added.forEach(w=>{
@@ -1202,7 +1202,7 @@ function openResume(w,k,anchor){
     const r=anchor.getBoundingClientRect(); pop.style.left=Math.max(8,r.left+window.scrollX)+"px"; pop.style.top=(r.bottom+window.scrollY+6)+"px";
     $("rsX").onclick=closePop;
     $("rsA").onclick=()=>{ const v=$("rsD").value; if(!v) return; const o=$("rsO").value.trim();
-      edit(w.id,[{p:["pauses"],v:(w.pauses||[]).filter(x=>x!==p&&x.ep!==k)},{p:["start"],v:key(snapBD(D(v)))},...(o?[{p:["owner"],v:o}]:[])]); closePop(); };
+      edit(w.id,[{p:["pauses"],v:(w.pauses||[]).filter(x=>x!==p&&x.ep!==k)},{p:["start"],v:key(snapBD(D(v)))},{p:["launchAuto"],v:true},{p:["launchByPlan"],del:true},...(o?[{p:["owner"],v:o}]:[])]); closePop(); };
     return;
   }
   pop.innerHTML=`<h4>${k}화부터 제작 재개 (활성화)</h4><p class="ps">${esc(w.n)} · ${p.from?`${ymd(D(p.from))}부터 중단`:""}</p>
@@ -1248,7 +1248,9 @@ function renderProd(){
         ${f("첫 더빙 묶음 회차 수","b1","number",`min="1" max="${S.N}" title="이미 보낸 1차 묶음이 5화가 아닐 때만 바꾸세요. 이후는 5화씩 묶입니다."`)}
       </div>
       <div class="gl">운영</div><div class="fields">
-        ${f("목표 런칭일 (이 날 이후로 자동 결정)","launch","date")}${f("총 회차","total","number",`min="1" max="300"`)}
+        <label>런칭일<span style="display:flex;gap:6px;align-items:center">
+          <select class="in" data-sel="lauto"><option value="1"${w.launchAuto?" selected":""}>가장 빠른 날 (자동)</option><option value="0"${w.launchAuto?"":" selected"}>목표일 이후로</option></select>
+          ${w.launchAuto?`<span class="in" style="border-color:transparent;padding-left:0;color:var(--ink2)">${S.L?ymd(S.L):"미정"}</span>`:`<input class="in t" type="date" data-f="launch" value="${esc(w.launch||"")}" aria-label="목표 런칭일">`}</span></label>${f("총 회차","total","number",`min="1" max="300"`)}
         <label>오픈 방식<span class="in" style="border-color:transparent;padding-left:0;color:var(--ink2)">런칭 ${OPEN_K}화 · 이후 주 1회 · 휴재 없음</span></label>
       </div>
     </div>
@@ -1334,10 +1336,14 @@ function renderProd(){
     else if(fk==="n"){ v=v.trim()||"이름 없음"; }
     else if((fk==="start"||fk==="launch")&&!v) return;
     else if(fk==="start"){ v=key(snapBD(D(v))); }   // 착수일은 영업일로
+    if(fk==="start"){   // 착수일을 정하면 런칭은 휴재 없는 가장 빠른 날로 자동
+      edit(w.id,[{p:["start"],v},{p:["launchAuto"],v:true},{p:["launchByPlan"],del:true},{p:["launch0"],del:true}]); return; }
+    if(fk==="launch"){ edit(w.id,[{p:["launch"],v},{p:["launchAuto"],del:true}]); return; }
     edit(w.id,[{p:[fk],v}]);
   });
   document.querySelectorAll("#v-prod [data-sel]").forEach(el=>el.onchange=()=>{
     if(el.dataset.sel==="voice"){ edit(w.id,[{p:["voice"],v:el.value}]); return; }
+    if(el.dataset.sel==="lauto"){ edit(w.id,el.value==="1"?[{p:["launchAuto"],v:true},{p:["launchByPlan"],del:true}]:[{p:["launchAuto"],del:true},{p:["launch"],v:w.launch&&!w.launchAuto?w.launch:key(schedule(w).L||TODAY)}]); return; }
     if(el.dataset.sel==="age"){ edit(w.id,[el.value?{p:["age"],v:el.value}:{p:["age"],del:true}]); return; }
     if(el.dataset.sel==="cont"){ edit(w.id,[{p:["cont"],v:el.value==="1"}]); return; }
     const ext=el.value==="ext", tmp={...w,team:ext?{...(w.team||{}),prod1:"외부 제작사",prodF:"외부 제작사"}:{}};
@@ -1596,7 +1602,7 @@ function addWork(ev){
 }
 function createWork(fields){
   const id="w"+Date.now().toString(36), pos=Math.max(0,...WORKS.map(w=>w.pos||0))+1;
-  const w=normW({id,pos,...fields});
+  const w=normW({id,pos,launchAuto:true,...fields});
   WORKS.push(w); SEL=id;
   if(SB.on){ (PENDING[id]=PENDING[id]||[]).push({p:["n"],v:w.n}); pushWork(id); }
   render();
