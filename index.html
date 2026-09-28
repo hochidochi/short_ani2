@@ -152,7 +152,7 @@ tr.pzrow td{background:repeating-linear-gradient(135deg,#E1E2DD 0 5px,#EEEFEB 5p
 .pzl2{font-weight:700;color:var(--ink2);font-size:13px}
 .vo.ai{background:var(--ai-bg);color:var(--ai)}
 .cal td.cont{background:repeating-linear-gradient(90deg,var(--ls,var(--serial)) 0 3px,transparent 3px 7px);opacity:.8}
-.cal td.wait{box-shadow:inset 0 0 0 1px var(--line2);background:#FAFAF8;color:var(--muted);font-size:10.5px;font-weight:600;white-space:nowrap}
+.cal td.wait{background:#EFEFEC}
 .seg.sm button{padding:2px 9px;font-size:12px}
 .epadd{display:flex;align-items:center;gap:8px;margin:10px 0 0;flex-wrap:wrap}
 .epadd .sp{flex:1}
@@ -1095,7 +1095,7 @@ function renderOpen(){
       <span class="mt" style="margin-top:1px">${tbdTag(w,1)}<span class="tag pzt" style="font-size:10px;padding:0 5px">${esc(pauseShort(w))}</span></span>
       <span class="mt"><span class="ln ${lineOf(w)}">${lineOf(w)==="ext"?"외부":"내부"}</span>런칭 미정</span></th>`;
     months.forEach((_,i)=>{ const cl=(i===nowM?" now":"")+yb(i);
-      if(isHire(p)) h+=`<td class="c wait${cl}" title="${esc(pauseTxt(w))}">${i===nowM?"착수 대기":""}</td>`;
+      if(isHire(p)) h+=`<td class="c wait${cl}" title="${esc(pauseTxt(w))}"></td>`;
       else if(i>=pm) h+=`<td class="c pz${cl}" title="${esc(pauseTxt(w))}">${i===pm?"중단":""}</td>`;
       else if(i>=pf) h+=`<td class="c prod${cl}" title="제작 중"></td>`;
       else h+=`<td class="c${cl}"></td>`; });
@@ -1108,7 +1108,7 @@ function renderOpen(){
     <span>런칭 칸: 날짜 · 그 달 공개 회차 / 연재 칸 숫자: 그 달 공개 회차</span>
     ${FORCE?`<span><i style="background:var(--int-bg);box-shadow:inset 0 -4px 0 var(--hia)"></i>그 달에 휴재 있음</span><span><i style="background:var(--hia-bg)"></i>한 달 내내 휴재</span>`:""}
     <span><i style="background:repeating-linear-gradient(135deg,#E1E2DD 0 4px,#EEEFEB 4px 8px)"></i>제작 중단</span>
-    <span><i style="border:1px dashed var(--line2);background:none"></i>착수 대기 (신규 인력 충원 시)</span>
+    <span><i style="background:#EFEFEC"></i>착수 대기 (신규 인력 충원 시)</span>
     <span>→ ${YEND+1}년 이후 런칭</span>
     <span>작품명을 누르면 제작 일정으로 이동합니다.</span>
   </div>`;
