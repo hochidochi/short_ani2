@@ -705,6 +705,12 @@ function runMigrations0(){
       if(ps.length) edit(w.id,ps); });
     CONF.migr.push("b1-prodF-1004"); dirty=true;
   }
+  if(!has("b1-prod1-restore")){   // 1차 묶음 영상 1차 완료일(9/11) 기록이 빠진 경우 복구
+    B1_TIMELINE.works.forEach(t=>{ const w=WORKS.find(x=>x.n===t.n); if(!w) return; const ps=[];
+      for(let k=1;k<=t.eps;k++){ const kk=`${k}:prod1`, o=(w.ov||{})[kk]; if(!o||!o.f) ps.push({p:["ov",kk],v:{...(o||{}),...clone(B1_TIMELINE.perEp.prod1)}}); }
+      if(ps.length) edit(w.id,ps); });
+    CONF.migr.push("b1-prod1-restore"); dirty=true;
+  }
   if(dirty) saveConf();
 }
 const normW=(w)=>(w=>({...w,voice:w.voice==="ai"?"ai":"human",cont:w.cont!==false}))({n:"새 작품",owner:"",voice:"human",done:0,rate:7,start:key(TODAY),b1:BATCH,total:20,
@@ -757,7 +763,11 @@ function scheduleCore(w,useOv=true){
   const ov=useOv?(w.ov||{}):{};
   const resumes={}; (w.pauses||[]).forEach(p=>{ if(p.resume) resumes[p.ep]=snapBD(D(p.resume)); });
   const ST=stagesFor(w), N=clamp(+w.total||1,1,300), done=clamp(+w.done||0,0,N);
-  const start0=snapBD(D(w.start||key(TODAY))), doneEnd=prevBD(start0);
+  const start0=snapBD(D(w.start||key(TODAY)));
+  // 이미 끝난 회차(1차 제작 완료 회차)의 완료일: 다음 회차 착수일 전날, 단 오늘보다 늦을 수는 없음
+  //  (중단 후 재개처럼 착수일이 먼 미래여도 완료된 회차의 뒤 공정이 끌려가지 않게)
+  const lastBDToday=isBD(TODAY)?TODAY:prevBD(TODAY);
+  const doneEnd=prevBD(start0)<lastBDToday?prevBD(start0):lastBDToday;
   const BT=batchesOf(w,N), bOf=[null];
   BT.forEach(([a,b],i)=>{for(let k=a;k<=b;k++) bOf[k]=i;});
   const eps=[null]; for(let k=1;k<=N;k++) eps.push({cells:{}});
