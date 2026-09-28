@@ -143,6 +143,20 @@ td.pzc{box-shadow:inset 0 3px 0 var(--ink2)}
   font-size:13px;box-shadow:0 10px 30px rgba(0,0,0,.25);max-width:min(720px,92vw)}
 .cal tr.flash th.rl{background:#FFF6D6}
 .cal tr.flash td.c{outline:0}
+.cal tr.held th.rl{opacity:.85}
+.epb{display:block;margin:2px auto 0;border:1px solid var(--line2);background:var(--surface);border-radius:4px;font-size:10px;font-weight:600;padding:0 5px;cursor:pointer;color:var(--ink2)}
+td.ep .epb{opacity:.45} tr:hover td.ep .epb,td.ep .epb:focus-visible{opacity:1}
+.epb:hover{border-color:var(--ink)}
+.epz{display:block;font-size:9.5px;font-weight:700;color:var(--ink2);white-space:nowrap}
+tr.pzrow td{background:repeating-linear-gradient(135deg,#E1E2DD 0 5px,#EEEFEB 5px 10px);padding:10px 12px}
+.pzl2{font-weight:700;color:var(--ink2);font-size:13px}
+.vo.ai{background:var(--ai-bg);color:var(--ai)}
+.cal td.cont{background:repeating-linear-gradient(90deg,var(--ls,var(--serial)) 0 3px,transparent 3px 7px);opacity:.8}
+.cal td.wait{box-shadow:inset 0 0 0 1px var(--line2);background:#FAFAF8;color:var(--muted);font-size:10.5px;font-weight:600;white-space:nowrap}
+.seg.sm button{padding:2px 9px;font-size:12px}
+.epadd{display:flex;align-items:center;gap:8px;margin:10px 0 0;flex-wrap:wrap}
+.epadd .sp{flex:1}
+.epadd .btn:disabled{opacity:.4;cursor:default}
 .cal .far{color:var(--ink2);font-weight:700;font-size:14px}
 .legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12px;color:var(--ink2);margin:10px 0 0}
 .legend i{display:inline-block;width:18px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:6px}
@@ -185,7 +199,7 @@ table.eg th,table.eg td{padding:0}
 table.eg thead th{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line2);
   vertical-align:bottom;text-align:left;padding:8px 6px 6px;font-weight:600;font-size:11.5px;line-height:1.3;border-left:1px solid var(--line)}
 table.eg thead th small{display:block;font-weight:400;color:var(--muted);font-size:10.5px}
-table.eg thead th.ep,table.eg td.ep{position:sticky;left:0;z-index:4;background:var(--surface);min-width:54px;text-align:center;border-left:0;border-right:1px solid var(--line2)}
+table.eg thead th.ep,table.eg td.ep{position:sticky;left:0;z-index:4;background:var(--surface);min-width:64px;text-align:center;border-left:0;border-right:1px solid var(--line2)}
 table.eg thead th.ep{z-index:7}
 table.eg thead th.rd,table.eg thead th.op{background:#F7F8F5}
 table.eg td{border-bottom:1px solid var(--line);border-left:1px solid var(--line)}
@@ -357,36 +371,38 @@ const weeks=(a,b)=>Math.round((b-a)/(7*864e5));
 /* ---------- 공정 기준 (영업일) ----------
    sc(진행 단위): "ep" 회차별 · "batch" 5화 묶음 · "work" 작품당 1회
    gate(작품 1회 단계): "next" 다음 단계가 이 단계 완료를 기다림 · "open" 런칭 전까지만 끝나면 됨      */
-const PV=4;   // 공정표 버전 — 바뀌면 예전에 저장된 단계 값은 버림
+const PV=6;   // 공정표 버전 — 바뀌면 예전에 저장된 단계 값은 버림
 const DEFAULT_CONF={
   pv:PV,
   lockBD:5,   // 최종본은 오픈일보다 이만큼 먼저 나와야 함
   hol:DEFAULT_HOL,
-  stages:[   // 평균 기간 (영업일) — 9/23 시트 기준
-    {k:"contract",n:"계약 체결",         s:"계약 체결",   team:"사업 담당",        h:10, sc:"work",  gate:"none", seq:false},   // 제작 시작 2주(10영업일) 전까지 완료
-    {k:"prod1",   n:"영상 1차 제작",     s:"영상 1차",    team:"내부 제작팀",      h:7,  sc:"ep",    seq:true},
-    {k:"author",  n:"작가 승인",         s:"작가 승인",   team:"작가",             h:3,  sc:"ep",    seq:false, upto:3},   // 작가+내부 승인 = 5
-    {k:"intAppr", n:"내부 승인",         s:"내부 승인",   team:"내부관계자",       h:2,  sc:"ep",    seq:false, upto:3},
-    {k:"trans",   n:"대사 번역",         s:"대사 번역",   team:"GW content",       h:5,  sc:"ep",    seq:false},            // 대사 번역+등급 피드백 = 5
-    {k:"ratingFb",n:"등급 분류 피드백",   s:"등급 피드백", team:"내부관계자",       h:5,  sc:"work",  gate:"next", seq:false, conc:true},
-    {k:"prodF",   n:"영상 최종 수정",     s:"영상 최종",   team:"내부 제작팀",      h:5,  sc:"ep",    seq:false},
-    {k:"script",  n:"성우 대사집 확정",   s:"대사집 확정", team:"사운드 스튜디오",  h:7,  sc:"batch", seq:false},            // 대사집~믹싱 = 30
-    {k:"subtr",   n:"자막 번역",         s:"자막 번역",   team:"GW content",       h:3,  sc:"ep",    seq:false, par:true},
-    {k:"casting", n:"성우 캐스팅",       s:"성우 캐스팅", team:"사운드 스튜디오",  h:7,  sc:"work",  gate:"next", seq:false, conc:true},
-    {k:"dub",     n:"성우 더빙",         s:"성우 더빙",   team:"사운드 스튜디오",  h:18, sc:"batch", seq:false},
-    {k:"mix",     n:"사운드 믹싱 최종본", s:"믹싱 최종본", team:"사운드 스튜디오",  h:5,  sc:"batch", seq:false},
-    {k:"burn",    n:"자막 최종 영상본",   s:"자막 최종본", team:"내부 제작팀",      h:2,  sc:"ep",    seq:false},
-    {k:"rating",  n:"영상 등급분류",     s:"등급분류",    team:"영등위",           h:15, sc:"batch", seq:false},
+  /* 평균 기간 (영업일) — 9/28 시트: 내부/외부 × 인간/AI 성우
+     v: {ih:내부·인간, ia:내부·AI, eh:외부·인간, ea:외부·AI}  (0이면 그 프로세스에 없는 단계) */
+  stages:[
+    {k:"contract",n:"계약 체결",         s:"계약 체결",   team:"사업 담당",        v:{ih:10,ia:10,eh:10,ea:10}, sc:"work",  gate:"none"},   // 제작 시작 2주(10영업일) 전까지
+    {k:"prod1",   n:"영상 1차 제작",     s:"영상 1차",    team:"내부 제작팀",      v:{ih:7, ia:7, eh:5, ea:5},  sc:"ep",    seq:true},    // 기본값 — 작품별 '회차당 1차 제작'이 우선
+    {k:"author",  n:"작가 승인",         s:"작가 승인",   team:"작가",             v:{ih:5, ia:5, eh:10,ea:10}, sc:"ep",    upto:3},      // 내부: 작가+내부 = 10
+    {k:"intAppr", n:"내부 승인",         s:"내부 승인",   team:"내부관계자",       v:{ih:5, ia:5, eh:2, ea:2},  sc:"ep",    upto:{i:3,e:0}, conc:"ext"},   // 내부: 1~3화만 · 외부: 전 회차 (1~3화는 작가 승인과 병렬)
+    {k:"ratingFb",n:"등급 분류 피드백",   s:"등급 피드백", team:"내부관계자",       v:{ih:2, ia:2, eh:2, ea:2},  sc:"work",  gate:"next", conc:true},   // 1~3화 승인과 병렬
+    {k:"prodF",   n:"영상 최종 수정",     s:"영상 최종",   team:"내부 제작팀",      v:{ih:5, ia:5, eh:5, ea:5},  sc:"ep"},
+    {k:"trans",   n:"대사 번역",         s:"대사 번역",   team:"GW content",       v:{ih:5, ia:5, eh:5, ea:5},  sc:"batch"},  // 5회차씩
+    {k:"script",  n:"성우 대사집 확정",   s:"대사집 확정", team:"사운드 스튜디오",  v:{ih:7, ia:0, eh:7, ea:0},  sc:"batch"},  // ┐
+    {k:"subtr",   n:"자막 번역",         s:"자막 번역",   team:"GW content",       v:{ih:2, ia:2, eh:2, ea:2},  sc:"batch", par:true},   // │ 병렬 (5회차씩)
+    {k:"casting", n:"성우 캐스팅",       s:"성우 캐스팅", team:"사운드 스튜디오",  v:{ih:2, ia:0, eh:2, ea:0},  sc:"work",  gate:"next"},   // │ 사운드 통으로 30 + 최초 묶음만 캐스팅 2일
+    {k:"dub",     n:"성우 더빙",         s:"성우 더빙",   team:"사운드 스튜디오",  v:{ih:18,ia:0, eh:18,ea:0},  sc:"batch"},  // │
+    {k:"mix",     n:"사운드 믹싱 최종본", s:"믹싱 최종본", team:"사운드 스튜디오",  v:{ih:5, ia:2, eh:5, ea:2},  sc:"batch"},  // ┘ (AI 성우는 믹싱 2일만)
+    {k:"burn",    n:"자막 최종 영상본",   s:"자막 최종본", team:"내부 제작팀",      v:{ih:1, ia:1, eh:1, ea:1},  sc:"ep"},
+    {k:"rating",  n:"영상 등급분류",     s:"등급분류",    team:"영등위",           v:{ih:15,ia:15,eh:15,ea:15}, sc:"batch"},
   ]
 };
 const SC_LABEL={ep:"회차별",batch:`${BATCH}화 묶음`,work:"작품 1회"};
 function normConf(c){
   c=c||{};
   const saved=c.pv===PV&&Array.isArray(c.stages)?c.stages:[];
-  return {pv:PV,staff:{n:c.staff&&c.staff.n!=null?+c.staff.n:2,order:c.staff&&Array.isArray(c.staff.order)?c.staff.order:[]},lockBD:c.lockBD!=null?+c.lockBD:DEFAULT_CONF.lockBD, migr:Array.isArray(c.migr)?c.migr:[],
+  return {pv:PV,contCount:false,staff:{n:c.staff&&c.staff.n!=null?+c.staff.n:2,order:c.staff&&Array.isArray(c.staff.order)?c.staff.order:[]},lockBD:c.lockBD!=null?+c.lockBD:DEFAULT_CONF.lockBD, migr:Array.isArray(c.migr)?c.migr:[],
     hol:Array.isArray(c.hol)&&c.hol.length?c.hol:clone(DEFAULT_HOL),
     stages:DEFAULT_CONF.stages.map(d=>{const x=saved.find(y=>y.k===d.k)||{};
-      return {...d,h:x.h!=null?+x.h:d.h,sc:x.sc||d.sc,gate:x.gate||d.gate,seq:x.seq!=null?!!x.seq:d.seq,team:x.team||d.team,upto:x.upto!=null?+x.upto:(d.upto||0),par:x.par!=null?!!x.par:!!d.par,conc:x.conc!=null?!!x.conc:!!d.conc};})};
+      return {...d,v:{...d.v,...(x.v||{})},h:(x.v||d.v).ih,sc:x.sc||d.sc,gate:x.gate||d.gate,seq:x.seq!=null?!!x.seq:!!d.seq,team:x.team||d.team,upto:x.upto!=null?(typeof x.upto==="object"?x.upto:+x.upto):(d.upto||0),par:x.par!=null?!!x.par:!!d.par,conc:x.conc!=null?x.conc:(d.conc||false)};})};
 }
 
 /* ---------- 기본 작품 (기존 HTML 값 이관) ---------- */
@@ -461,9 +477,36 @@ function processV2Patches(w,withB1){
   });
   return ps;
 }
-function runMigrations(){ MIGRATING=true; try{ runMigrations0(); } finally{ MIGRATING=false; } }
+/* 데이터 정리(마이그레이션)는 화면에서 먼저 끝내고, 마지막에 한 번에 저장 — 중간에 새로고침해도 꼬이지 않음 */
+let MIG=null;
+async function runMigrations(){
+  MIGRATING=true; MIG={dirty:new Set(),del:new Set(),conf:false};
+  try{ runMigrations0(); } finally{ MIGRATING=false; }
+  const M=MIG; MIG=null;
+  render();
+  if(SB.on&&(M.dirty.size||M.del.size||M.conf)){
+    setSync("busy","데이터 정리해서 저장 중…");
+    const now=new Date().toISOString(), ids=new Set(WORKS.map(w=>w.id));
+    for(const id of M.del) if(!ids.has(id)&&REMOTE_IDS.has(id)) await sb("DELETE",T_WORKS,`?id=eq.${encodeURIComponent(id)}`);
+    const rows=WORKS.filter(w=>M.dirty.has(w.id)).map(w=>({id:w.id,pos:w.pos||0,data:w,updated_at:now}));
+    if(rows.length) await sb("POST",T_WORKS,"",rows,"resolution=merge-duplicates");
+    await sb("POST",T_CONF,"",[{id:"default",data:CONF,updated_at:now}],"resolution=merge-duplicates");
+    rows.forEach(r=>SEEN[r.id]=now); CONF_SEEN=now;
+  }
+  render();
+}
 function runMigrations0(){
   CONF.migr=CONF.migr||[];
+  { const hasR=(id)=>(CONF.migr||[]).includes(id);
+    // 이전 버전에서 저장이 중간에 끊겨 옛 데이터가 남은 경우: 기본값에서 다시 정리
+    if(!hasR("rebuild-0923")&&(WORKS.some(w=>w.n==="내부 제작 1 (11월)"||w.n==="내부 제작 후보")||!WORKS.length)){
+      const old=WORKS.map(w=>w.id);
+      WORKS=clone(DEFAULT_WORKS).map(normW);
+      old.forEach(id=>{ if(!WORKS.some(w=>w.id===id)&&MIG) MIG.del.add(id); });
+      if(MIG) WORKS.forEach(w=>MIG.dirty.add(w.id));
+      CONF=normConf(DEFAULT_CONF); setHol(CONF.hol); CONF.migr=["rebuild-0923"]; if(MIG) MIG.conf=true;
+    } else if(!hasR("rebuild-0923")){ CONF.migr.push("rebuild-0923"); if(MIG) MIG.conf=true; }
+  }
   const has=(id)=>CONF.migr.includes(id);
   let dirty=false;
   if(!has("all-human-voice")){
@@ -519,7 +562,7 @@ function runMigrations0(){
       if(cur){ edit(cur.id,[{p:["n"],v:n},{p:["start"],v:start},{p:["owner"],v:"외부 제작사"},{p:["team","prod1"],v:"외부 제작사"},{p:["team","prodF"],v:"외부 제작사"}]); return; }
       const w=normW({...mkExt(e),total:20,pos:Math.max(0,...WORKS.map(x=>x.pos||0))+1});
       WORKS.push(w);
-      if(SB.on){ (PENDING[w.id]=PENDING[w.id]||[]).push({p:["n"],v:w.n}); pushWork(w.id); }
+      if(SB.on){ if(MIGRATING){ MIG.dirty.add(w.id); } else { (PENDING[w.id]=PENDING[w.id]||[]).push({p:["n"],v:w.n}); pushWork(w.id); } }
     });
     CONF.migr.push("ext-pipeline-4"); dirty=true;
   }
@@ -552,7 +595,7 @@ function runMigrations0(){
       if(ps.length) edit(w.id,ps);
     });
     NEW_INT.forEach(e=>{ if(!WORKS.some(x=>x.id===e.id||x.n===e.n)){ const w=normW({...e,pos:Math.max(0,...WORKS.map(x=>x.pos||0))+1}); WORKS.push(w);
-      if(SB.on){ (PENDING[w.id]=PENDING[w.id]||[]).push({p:["n"],v:w.n}); pushWork(w.id); } } });
+      if(SB.on){ if(MIGRATING){ MIG.dirty.add(w.id); } else { (PENDING[w.id]=PENDING[w.id]||[]).push({p:["n"],v:w.n}); pushWork(w.id); } } } });
     const id=(n)=>(WORKS.find(x=>x.n===n)||{}).id;
     CONF.staff={n:2,order:["냐한 남자","작두","초인의 시대","심해수","쪽팔려 게임","잔불의 기사"].map(id).filter(Boolean)};
     CONF.migr.push("staff-2609","coverage-plan-1"); dirty=true;
@@ -614,9 +657,40 @@ function runMigrations0(){
       if(o&&o.f) edit(w.id,[{p:["ov","w:ratingFb"],v:{...o,ok:true}}]); });
     CONF.migr.push("ratingfb-ok"); dirty=true;
   }
+  if(!has("process-v5")){   // 9/28 시트: 내부/외부 × 인간/AI 공정 · 회차별 중단/재개
+    WORKS.forEach(w=>{
+      const ps=[{p:["line"],v:lineOf(w)}];
+      if(w.pause){ ps.push({p:["pauses"],v:[{ep:(+w.pause.after||0)+1,from:"2026-09-28",resume:w.pause.resume||null}]},{p:["pause"],del:true}); }
+      if(lineOf(w)==="ext"&&+w.rate===13) ps.push({p:["rate"],v:5});   // 외부 제작 영상 1차 = 5영업일
+      if(B1_TIMELINE.works.some(t=>t.n===w.n)){
+        const o=(w.ov||{})["1:trans"]; if(o&&o.f) ps.push({p:["ov","1:trans"],v:{...o,lock:true}});      // 실제로 영상 최종과 병행 중
+        const c=(w.ov||{})["w:casting"]; if(c&&c.f) ps.push({p:["ov","w:casting"],v:{...c,lock:true}});
+      }
+      edit(w.id,ps);
+    });
+    CONF.migr.push("process-v5"); dirty=true;
+    if(has("owners-2609b")) applyPlan(planCoverage());
+  }
+  if(!has("hire-wait-0928")){   // 9/28 의견: 신규 3작품은 신규 인력 충원 시 착수 · 기존 인력은 현 작품 계속 연재
+    ["심해수","쪽팔려 게임","잔불의 기사"].forEach(n=>{ const w=WORKS.find(x=>x.n===n); if(!w) return;
+      edit(w.id,[{p:["pauses"],v:[{ep:1,from:key(TODAY),resume:null,reason:"hire"}]},{p:["owner"],v:"미정 (신규 인력 충원 시)"}]); });
+    WORKS.forEach(w=>{ if(w.cont==null) edit(w.id,[{p:["cont"],v:true}]); });
+    CONF.migr.push("hire-wait-0928"); dirty=true;
+    if(has("owners-2609b")) applyPlan(planCoverage());
+  }
+  if(!has("cont-count-0928")){   // 계속 연재 작품도 연재 수에 포함해서 외부 프로젝트 다시 편성
+    CONF.contCount=true; CONF.migr.push("cont-count-0928"); dirty=true;
+    if(has("owners-2609b")) applyPlan(planCoverage());
+  }
+  if(!has("no-cont-0928")){   // 회차 수 기준으로만 연재 계산 · 제작 작품명 뒤 (월) 제거
+    CONF.contCount=false;
+    WORKS.forEach(w=>{ const m=(w.n||"").match(/^((?:내부|외부) 제작 \d+)\s*\(.+\)$/); if(m) edit(w.id,[{p:["n"],v:m[1]}]); });
+    CONF.migr.push("no-cont-0928"); dirty=true;
+    if(has("owners-2609b")) applyPlan(planCoverage());
+  }
   if(dirty) saveConf();
 }
-const normW=(w)=>(w=>({...w,voice:"human"}))({n:"새 작품",owner:"",voice:"human",done:0,rate:7,start:key(TODAY),b1:BATCH,total:20,
+const normW=(w)=>(w=>({...w,voice:w.voice==="ai"?"ai":"human",cont:w.cont!==false}))({n:"새 작품",owner:"",voice:"human",done:0,rate:7,start:key(TODAY),b1:BATCH,total:20,
   launch:"2026-12-21",pos:0,...w,ov:{...(w&&w.ov||{})}});
 
 let WORKS=[], CONF=normConf(DEFAULT_CONF);
@@ -634,8 +708,15 @@ let TAB="open", SEL=null, SHOWALL=false;
    · 오픈: 런칭일에 3회차 동시 오픈, 이후 주 1회. 전 회차가 휴재 없이 이어지는
            가장 이른 날(목표 런칭일 이후)로 자동 결정                                */
 const teamOf=(s,w)=>(w&&w.team&&w.team[s.k])||s.team;
-const durOf=(s,w)=>s.k==="prod1"?Math.max(1,+w.rate||s.h):+s.h;   // 성우: 전 작품 인간 성우 고정
-const stagesFor=(w)=>CONF.stages.filter(s=>s.k==="prod1"||durOf(s,w)>0);
+const VARIANT=(w)=>(lineOf(w)==="ext"?"e":"i")+(w.voice==="ai"?"a":"h");
+const VAR_LABEL={ih:"내부·인간 성우",ia:"내부·AI 성우",eh:"외부·인간 성우",ea:"외부·AI 성우"};
+const defRate=(w)=>{const s=CONF.stages.find(x=>x.k==="prod1");return +(s.v[VARIANT(w)]||s.v.ih);};
+const durOf=(s,w)=>s.k==="prod1"?Math.max(1,+w.rate||defRate(w)):+((s.v||{})[VARIANT(w)]??s.h);
+const uptoOf=(s,w)=>typeof s.upto==="object"&&s.upto?+(s.upto[lineOf(w)==="ext"?"e":"i"]||0):+(s.upto||0);
+/* conc "ext": 외부 제작에서, 같은 회차에 작가 승인이 있을 때만(1~3화) 작가 승인과 동시에 */
+const concOf=(s,w,k)=>{ if(s.conc===true) return true; if(s.conc!=="ext"||lineOf(w)!=="ext") return false;
+  if(k==null) return true; const a=CONF.stages.find(x=>x.k==="author"), u=a?uptoOf(a,w):0; return !(u>0&&k>u); };
+const stagesFor=(w)=>CONF.stages.filter(s=>s.k==="prod1"||s.k==="contract"||durOf(s,w)>0);
 function batchesOf(w,N){
   const out=[]; let a=1, size=clamp(+w.b1||BATCH,1,N);
   while(a<=N){ const b=Math.min(N,a+size-1); out.push([a,b]); a=b+1; size=BATCH; }
@@ -644,8 +725,19 @@ function batchesOf(w,N){
 const fixD=(f)=>snapBD(D(f));   // 지정 날짜가 휴일이면 다음 영업일로
 const ovKey=(c,s,k)=>c&&c.work?`w:${s.k}`:c&&c.batch?`${c.batch[0]}:${s.k}`:`${k}:${s.k}`;
 
+/* 제작 중단: w.pauses=[{ep, from, resume}] — resume이 없으면 그 회차부터 '재개 미정' */
+const holdOf=(w)=>{const d=+w.done||0; return (w.pauses||[]).filter(p=>!p.resume&&p.ep>d).sort((a,b)=>a.ep-b.ep)[0]||null;};
 function schedule(w,useOv=true){
+  const hold=holdOf(w);
+  if(!hold) return scheduleCore(w,useOv);
+  const N=clamp(+w.total||1,1,300), N0=Math.min(N,hold.ep-1);
+  const core=N0>=1?scheduleCore({...w,total:N0},useOv):null;
+  return {...(core||{eps:[null],ST:stagesFor(w),BT:[],start0:snapBD(D(w.start||key(TODAY))),done:+w.done||0,K:OPEN_K}),
+    N,N0,held:hold,L:null,end:null,crit:null,critGate:null};
+}
+function scheduleCore(w,useOv=true){
   const ov=useOv?(w.ov||{}):{};
+  const resumes={}; (w.pauses||[]).forEach(p=>{ if(p.resume) resumes[p.ep]=snapBD(D(p.resume)); });
   const ST=stagesFor(w), N=clamp(+w.total||1,1,300), done=clamp(+w.done||0,0,N);
   const start0=snapBD(D(w.start||key(TODAY))), doneEnd=prevBD(start0);
   const BT=batchesOf(w,N), bOf=[null];
@@ -660,9 +752,9 @@ function schedule(w,useOv=true){
   const PAR_JOIN="burn";                       // 병행 단계는 '자막 최종 영상본' 전에 합류
   const parEnds=Array(N+1).fill(null);
   const lastMain=Array(N+1).fill(null);   // 직전 '본 단계' 시작일 — 동시 시작(conc) 단계가 씀
-  const markMain=(s,k,c)=>{ if(!s.par&&!s.conc) lastMain[k]=c.s||c.e; };
+  const markMain=(s,k,c)=>{ if(!s.par&&!concOf(s,w,k)) lastMain[k]=c.s||c.e; };
   ST.forEach(s=>{
-    const base=durOf(s,w);
+    const base=durOf(s,w), conc=concOf(s,w);
     if(s.k===PAR_JOIN) for(let k=1;k<=N;k++) if(parEnds[k]) bump(k,parEnds[k]);
     if(s.k==="prod1"){
       for(let k=1;k<=N;k++){
@@ -672,8 +764,9 @@ function schedule(w,useOv=true){
         let d=durO(o,base);
         let st=(k<=done+1||!s.seq)?start0:nextBD(eps[k-1].cells.prod1.e);
         if(prev[k]&&nextBD(prev[k])>st) st=nextBD(prev[k]);
+        if(resumes[k]&&resumes[k]>st) st=resumes[k];   // 제작 중단 후 재개일
         let e=d>0?addBD(st,d-1):prevBD(st);
-        let slip=false, pin=null; if(o&&o.f){ pin=fixD(o.f); if(st&&pin<st&&!o.ok&&!s.conc&&!s.par) slip=true; else { e=pin; if(e<st) st=null; else d=bdDiff(st,e)+1; } }   // 앞 단계가 늦어져 지정일을 못 지키면 밀림
+        let slip=false, pin=null; if(o&&o.f){ pin=fixD(o.f); if(st&&pin<st&&!o.ok&&!o.lock&&!conc&&!s.par) slip=true; else { e=pin; if(e<st) st=null; else d=bdDiff(st,e)+1; } }   // 앞 단계가 늦어져 지정일을 못 지키면 밀림
         eps[k].cells.prod1={s:st,e,d,base,kind:mkKind(o),m:o&&o.m||"",slip,pin}; bump(k,e); markMain(s,k,eps[k].cells.prod1);
       }
       return;
@@ -685,9 +778,9 @@ function schedule(w,useOv=true){
         const cell={s:null,e,d:base,base,kind:mkKind(o),m:o&&o.m||"",work:true,gate:"none",due:true};
         for(let k=1;k<=N;k++) eps[k].cells[s.k]=cell; return;
       }
-      let st=s.conc?(lastMain[1]||start0):(prev[1]?nextBD(prev[1]):start0);
+      let st=conc?(lastMain[1]||start0):(prev[1]?nextBD(prev[1]):start0);
       let e=d>0?addBD(st,d-1):prevBD(st);
-      let slip=false, pin=null; if(o&&o.f){ pin=fixD(o.f); if(st&&pin<st&&!o.ok&&!s.conc&&!s.par) slip=true; else { e=pin; if(e<st) st=null; else d=bdDiff(st,e)+1; } }   // 앞 단계가 늦어져 지정일을 못 지키면 밀림
+      let slip=false, pin=null; if(o&&o.f){ pin=fixD(o.f); if(st&&pin<st&&!o.ok&&!o.lock&&!conc&&!s.par) slip=true; else { e=pin; if(e<st) st=null; else d=bdDiff(st,e)+1; } }   // 앞 단계가 늦어져 지정일을 못 지키면 밀림
       const cell={s:st,e,d,base,kind:mkKind(o),m:o&&o.m||"",work:true,gate:s.gate||"next",slip,pin};
       for(let k=1;k<=N;k++){ eps[k].cells[s.k]=cell; if(cell.gate!=="open") bump(k,e); }
       if(cell.gate==="open") gates.push({s,e,need:addBD(e,+CONF.lockBD||0)});
@@ -697,22 +790,24 @@ function schedule(w,useOv=true){
       let prevB=null;
       BT.forEach(([a,b])=>{
         const o=ov[`${a}:${s.k}`]||null; let d=durO(o,base);
-        let st=null; for(let k=a;k<=b;k++){const x=s.conc?(lastMain[k]||start0):(prev[k]?nextBD(prev[k]):start0); if(!st||x>st) st=x;}
+        let st=null; for(let k=a;k<=b;k++){const x=conc?(lastMain[k]||start0):(prev[k]?nextBD(prev[k]):start0); if(!st||x>st) st=x;}
         if(s.seq&&prevB){const x=nextBD(prevB); if(x>st) st=x;}
         let e=d>0?addBD(st,d-1):prevBD(st);
-        let slip=false, pin=null; if(o&&o.f){ pin=fixD(o.f); if(st&&pin<st&&!o.ok&&!s.conc&&!s.par) slip=true; else { e=pin; if(e<st) st=null; else d=bdDiff(st,e)+1; } }   // 앞 단계가 늦어져 지정일을 못 지키면 밀림
-        for(let k=a;k<=b;k++){ eps[k].cells[s.k]={s:st,e,d,base,kind:mkKind(o),m:o&&o.m||"",batch:[a,b],slip,pin}; bump(k,e); markMain(s,k,eps[k].cells[s.k]); }
+        let slip=false, pin=null; if(o&&o.f){ pin=fixD(o.f); if(st&&pin<st&&!o.ok&&!o.lock&&!conc&&!s.par) slip=true; else { e=pin; if(e<st) st=null; else d=bdDiff(st,e)+1; } }   // 앞 단계가 늦어져 지정일을 못 지키면 밀림
+        for(let k=a;k<=b;k++){ eps[k].cells[s.k]={s:st,e,d,base,kind:mkKind(o),m:o&&o.m||"",batch:[a,b],slip,pin,par:!!s.par};
+          if(s.par){ if(!parEnds[k]||e>parEnds[k]) parEnds[k]=e; } else { bump(k,e); markMain(s,k,eps[k].cells[s.k]); } }
         prevB=e;
       });
       return;
     }
     for(let k=1;k<=N;k++){
-      if(s.upto>0&&k>s.upto){ eps[k].cells[s.k]={skip:true,e:prev[k]}; continue; }   // 예: 승인은 1~3화만
+      const up=uptoOf(s,w); if(up>0&&k>up){ eps[k].cells[s.k]={skip:true,e:prev[k]}; continue; }   // 예: 승인은 1~3화만
       const o=ov[`${k}:${s.k}`]||null; let d=durO(o,base);
-      let st=s.conc?(lastMain[k]||start0):(prev[k]?nextBD(prev[k]):start0);
+      const cK=concOf(s,w,k);
+      let st=cK?(lastMain[k]||start0):(prev[k]?nextBD(prev[k]):start0);
       if(s.seq&&k>1&&!eps[k-1].cells[s.k].skip){const x=nextBD(eps[k-1].cells[s.k].e); if(x>st) st=x;}
       let e=d>0?addBD(st,d-1):(prev[k]||prevBD(st));
-      let slip=false, pin=null; if(o&&o.f){ pin=fixD(o.f); if(st&&pin<st&&!o.ok&&!s.conc&&!s.par) slip=true; else { e=pin; if(e<st) st=null; else d=bdDiff(st,e)+1; } }   // 앞 단계가 늦어져 지정일을 못 지키면 밀림   // 앞 단계와 병행해 먼저 끝난 경우
+      let slip=false, pin=null; if(o&&o.f){ pin=fixD(o.f); if(st&&pin<st&&!o.ok&&!o.lock&&!conc&&!s.par) slip=true; else { e=pin; if(e<st) st=null; else d=bdDiff(st,e)+1; } }   // 앞 단계가 늦어져 지정일을 못 지키면 밀림   // 앞 단계와 병행해 먼저 끝난 경우
       eps[k].cells[s.k]={s:st,e,d,base,kind:mkKind(o),m:o&&o.m||"",par:!!s.par,slip,pin};
       if(s.par){ if(!parEnds[k]||e>parEnds[k]) parEnds[k]=e; }   // 다음 단계를 막지 않음
       else{ bump(k,e); markMain(s,k,eps[k].cells[s.k]); }
@@ -747,13 +842,20 @@ function staffOrder(){
   tbd.forEach(id=>{ if(!o.includes(id)) o.push(id); }); return o;
 }
 const staffRank=(w)=>staffOrder().indexOf(w.id);
-const isHeld=(w)=>false;   // 담당 배정·인턴 전환 기능은 제거 (9/23)
+const isHeld=(w)=>!!holdOf(w);   // 재개일 없이 중단된 작품 — 런칭 미정, 연재 편성에서 제외
 const ACT=()=>WORKS.filter(w=>!isHeld(w));
 /* 담당 미정 · 제작 중단 표시 */
 const tbdTag=(w,sm)=>w.tbd?`<span class="tag tbd"${sm?' style="font-size:10px;padding:0 5px"':""}>담당 미정</span>`:"";
-const pauseTxt=(w)=>w.pause?`${w.pause.after}화까지 완료 후 제작 중단 · ${ymd(D(w.pause.resume))} 인턴 투입 후 재개`:"";
+const pauseOf=(w)=>(w.pauses||[]).filter(p=>p.ep>(+w.done||0)||p.resume).sort((a,b)=>a.ep-b.ep)[0]||null;
+const isHire=(p)=>p&&p.reason==="hire";   // 신규 인력 충원 대기 (1화부터 착수 전)
+const pauseTxt=(w)=>{const p=pauseOf(w); if(!p) return "";
+  if(isHire(p)) return p.resume?`신규 인력 충원 → ${ymd(D(p.resume))} 착수`:"신규 인력 충원 시 착수 · 착수일 미정";
+  return `${p.ep-1>0?`${p.ep-1}화까지 만들고 `:""}${ymd(D(p.from))}부터 제작 중단 · ${p.resume?`${ymd(D(p.resume))} 재개`:"재개 미정"}`;};
+const pauseShort=(w)=>{const p=pauseOf(w); if(!p) return ""; const f=D(p.from);
+  if(isHire(p)) return p.resume?`${md(D(p.resume))} 착수 (인력 충원)`:"착수 대기 · 인력 충원 시";
+  return `${f.getUTCMonth()+1}월부터 중단${p.resume?` · ${md(D(p.resume))} 재개`:" · 재개 미정"}`;};
 /* 제작 라인: 1차 제작 담당이 외부 제작사면 외부, 아니면 내부 */
-const lineOf=(w)=>(w.team&&/외부/.test(w.team.prod1||""))||/^외부 제작/.test(w.n||"")?"ext":"int";
+const lineOf=(w)=>w.line?w.line:((w.team&&/외부/.test(w.team.prod1||""))||/^외부 제작/.test(w.n||"")?"ext":"int");
 const LINE_LABEL={int:"내부 제작",ext:"외부 제작"};
 /* ---------- 최소 연재 작품 수 유지 편성 ----------
    · 모든 작품은 휴재 없는 최단 런칭일(lmin) 이후 아무 월요일에나 런칭 가능 (늦출수록 여유만 늘어남)
@@ -766,7 +868,9 @@ const PLAN_END="2028-12-25";            // 편성 기간 끝 (월간표 마지�
 const NEW_RATE=13;                      // 신규 프로젝트 회차당 1차 제작(영업일) — 기존 내부·외부 후보와 동일
 const monOnOrAfter=(d)=>{let x=d;while(x.getUTCDay()!==1)x=addDays(x,1);return x;};
 const lminOf=(w)=>schedule({...w,launch:"2026-01-05"}).L;       // 목표일 제약 없이 가장 이른 런칭
-const serialDays=(w)=>{const N=clamp(+w.total||1,1,300);return CAD_D*Math.max(0,N-Math.min(OPEN_K,N));};
+/* 연재 기간(일): 최소 회차까지. '계속 연재' 작품은 CONF.contCount가 켜져 있으면 편성 기간 끝까지 연재 중으로 봄 */
+const serialDays=(w)=>{const N=clamp(+w.total||1,1,300);
+  return CAD_D*Math.max(0,N-Math.min(OPEN_K,N));};
 function onAirCount(items,t){ let n=0; for(const i of items) if(i.L<=t&&t<=addDays(i.L,i.dur)) n++; return n; }
 function coverageGaps(items,from,to){
   const out=[]; for(let t=from;t<=to;t=addDays(t,7)){ const n=onAirCount(items,t); if(n<MIN_ON_AIR) out.push({t,n}); } return out;
@@ -774,8 +878,8 @@ function coverageGaps(items,from,to){
 function newProject(kind,idx,start,launch){
   const ext=kind==="ext", id=(ext?"x":"i")+idx+"-"+key(start).replace(/-/g,"");
   const ym=`${String(start.getUTCFullYear()).slice(2)}년 ${start.getUTCMonth()+1}월`;
-  const w=normW({id,n:`${ext?"외부":"내부"} 제작 ${idx} (${ym})`,owner:ext?"외부 제작사":"내부 제작팀",
-    done:0,rate:NEW_RATE,start:key(start),b1:BATCH,total:20,launch:key(launch),auto:true});
+  const w=normW({id,n:`${ext?"외부":"내부"} 제작 ${idx}`,owner:ext?"외부 제작사":"내부 제작팀",
+    done:0,rate:ext?5:7,start:key(start),b1:BATCH,total:20,launch:key(launch),auto:true,line:ext?"ext":"int"});
   if(ext) w.team={prod1:"외부 제작사",prodF:"외부 제작사"};
   return w;
 }
@@ -833,9 +937,9 @@ function applyPlan(P){
   });
   P.added.forEach(w=>{
     w.pos=Math.max(0,...WORKS.map(x=>x.pos||0))+1; WORKS.push(w);
-    if(SB.on){ (PENDING[w.id]=PENDING[w.id]||[]).push({p:["n"],v:w.n}); pushWork(w.id); }
+    if(SB.on){ if(MIGRATING){ MIG.dirty.add(w.id); } else { (PENDING[w.id]=PENDING[w.id]||[]).push({p:["n"],v:w.n}); pushWork(w.id); } }
   });
-  render();
+  if(!MIGRATING) render();
 }
 function coverageNow(){
   const items=ACT().map(w=>{const S=schedule(w);return {w,L:S.L,dur:serialDays(w),lmin:S.L};});
@@ -905,7 +1009,7 @@ function renderOpen(){
     const lm=mi(V.L), em=mi(V.end);
     const pf=S.done>0?dataM:Math.max(0,mi(S.start0));
     for(let i=pf;i<Math.min(lm,NM);i++) c[i].st="prod";
-    if(w.pause) for(let i=Math.max(pf,dataM);i<Math.min(mi(D(w.pause.resume)),lm,NM);i++) c[i].st="pz";
+    const pz=pauseOf(w); if(pz&&pz.resume) for(let i=Math.max(pf,mi(D(pz.from)));i<Math.min(mi(D(pz.resume)),lm,NM);i++) c[i].st="pz";
     for(let k=1;k<=S.N;k++){
       const x=V.op[k], i=mi(x.open); if(i>=0&&i<NM) c[i].n++;
       for(let g=0;g<x.gap;g++){ const j=mi(addDays(x.slot,7*g)); if(j>=0&&j<NM) c[j].g++; }
@@ -926,7 +1030,8 @@ function renderOpen(){
     const firstM=launchBy.findIndex((a,i)=>a.length&&i>=nowM);
     h+=`<p class="lead">${firstM>=0?`${months[firstM].y}년 ${months[firstM].m}월에 ${launchBy[firstM].length}작품 오픈 예정`:`${YEND}년까지 오픈 예정 작품이 없습니다`}</p>
       ${covLine()}
-      <p class="lead-sub">${Y0}~${YEND}년 ${inRange}작품 오픈${after.length?` · ${YEND+1}년 이후 ${after.length}작품`:""} · 모든 작품 주 1회, 휴재 없이 완결까지 이어지는 날짜 기준</p>`;
+      <p class="lead-sub">${Y0}~${YEND}년 ${inRange}작품 오픈${after.length?` · ${YEND+1}년 이후 ${after.length}작품`:""}${(()=>{const hw=WORKS.filter(isHeld), hi=hw.filter(w=>isHire(holdOf(w))).length, pz=hw.length-hi;
+        return `${hi?` · <b>착수 대기(인력 충원 시) ${hi}작품</b>`:""}${pz?` · <b>제작 중단(재개 미정) ${pz}작품</b>`:""}`;})()} · 모든 작품 주 1회, 휴재 없이 완결까지 이어지는 날짜 기준</p>`;
   }
   h+=`</div><div class="seg" role="group" aria-label="런칭 시나리오">
       <button type="button" data-sc="" aria-pressed="${!FORCE}">휴재 없는 일정</button>
@@ -971,17 +1076,29 @@ function renderOpen(){
   rows.forEach(({w,S,V},ri)=>{
     const far=mi(V.L)>=NM;
     h+=`<tr class="ln-${lineOf(w)}${LAST_EDIT&&LAST_EDIT.id===w.id&&Date.now()-LAST_EDIT.t<60000?" flash":""}"><th class="rl"><button type="button" class="nm" data-go="${w.id}" title="제작 일정 보기">${esc(w.n)}</button>
-      ${w.tbd?`<span class="mt" style="margin-top:1px">${tbdTag(w,1)}</span>`:""}<span class="mt"><span class="ln ${lineOf(w)}">${lineOf(w)==="ext"?"외부":"내부"}</span>${far?ymd(V.L).slice(2):md(V.L)} 런칭${FORCE&&V.hiatus?` · <span style="color:var(--hia);font-weight:600">휴재 ${V.hiatus}주</span>`:""}</span></th>`;
+      ${w.tbd||pauseOf(w)?`<span class="mt" style="margin-top:1px">${tbdTag(w,1)}${pauseOf(w)?`<span class="tag pzt" style="font-size:10px;padding:0 5px">${esc(pauseShort(w))}</span>`:""}</span>`:""}<span class="mt"><span class="ln ${lineOf(w)}">${lineOf(w)==="ext"?"외부":"내부"}</span>${far?ymd(V.L).slice(2):md(V.L)} 런칭${FORCE&&V.hiatus?` · <span style="color:var(--hia);font-weight:600">휴재 ${V.hiatus}주</span>`:""}</span></th>`;
     cellsOf[ri].forEach((c,i)=>{
       const cl=(i===nowM?" now":"")+yb(i)+(c.g&&c.n?" gap":"");
       const gt=c.g?` · 휴재 ${c.g}주`:"";
       if(c.st==="launch") h+=`<td class="c launch${cl}" title="${esc(w.n)} 런칭 ${ymd(V.L)} · ${S.K}화 동시 오픈${gt}">${V.L.getUTCDate()}일<small>${c.n}화</small></td>`;
-      else if(c.st==="end") h+=`<td class="c end${cl}" title="완결 ${ymd(V.end)}${gt}">완결<small>${c.n}화</small></td>`;
+      else if(c.st==="end") h+=`<td class="c end${cl}" title="${S.N}화 공개 ${ymd(V.end)}${gt}">${S.N}화<small>${c.n}화</small></td>`;
       else if(c.st==="serial") h+= c.n?`<td class="c serial${cl}" title="${c.n}화 공개${gt}">${c.n}</td>`:`<td class="c gaponly${cl}" title="휴재${gt}">휴재</td>`;
       else if(c.st==="pz") h+=`<td class="c pz${cl}" title="${esc(pauseTxt(w))}">중단</td>`;
       else if(c.st==="prod") h+=`<td class="c prod${cl}" title="${far&&i===NM-1?`제작 중 — ${ymd(V.L)} 런칭`:"제작 중"}">${far&&i===NM-1?`<span class="far">→</span>`:""}</td>`;
       else h+=`<td class="c${cl}"></td>`;
     });
+    h+=`</tr>`;
+  });
+  WORKS.filter(isHeld).sort((a,b)=>(isHire(holdOf(a))?1:0)-(isHire(holdOf(b))?1:0)||(a.pos||0)-(b.pos||0)).forEach(w=>{   // 재개 미정으로 중단된 작품: 중단 월부터 끝까지 '중단'
+    const S=schedule(w), p=holdOf(w), pm=mi(D(p.from)), pf=S.done>0?dataM:Math.max(0,mi(S.start0));
+    h+=`<tr class="ln-${lineOf(w)} held"><th class="rl"><button type="button" class="nm" data-go="${w.id}" title="제작 일정 보기">${esc(w.n)}</button>
+      <span class="mt" style="margin-top:1px">${tbdTag(w,1)}<span class="tag pzt" style="font-size:10px;padding:0 5px">${esc(pauseShort(w))}</span></span>
+      <span class="mt"><span class="ln ${lineOf(w)}">${lineOf(w)==="ext"?"외부":"내부"}</span>런칭 미정</span></th>`;
+    months.forEach((_,i)=>{ const cl=(i===nowM?" now":"")+yb(i);
+      if(isHire(p)) h+=`<td class="c wait${cl}" title="${esc(pauseTxt(w))}">${i===nowM?"착수 대기":""}</td>`;
+      else if(i>=pm) h+=`<td class="c pz${cl}" title="${esc(pauseTxt(w))}">${i===pm?"중단":""}</td>`;
+      else if(i>=pf) h+=`<td class="c prod${cl}" title="제작 중"></td>`;
+      else h+=`<td class="c${cl}"></td>`; });
     h+=`</tr>`;
   });
   h+=`</tbody></table></div>
@@ -990,7 +1107,8 @@ function renderOpen(){
     <span><b>외부 제작</b> <i style="background:var(--ext);margin-left:6px"></i>런칭 <i style="background:var(--ext-bg)"></i>연재 <i style="background:repeating-linear-gradient(135deg,var(--ext-prod) 0 4px,#F7F7F4 4px 8px)"></i>제작 중</span>
     <span>런칭 칸: 날짜 · 그 달 공개 회차 / 연재 칸 숫자: 그 달 공개 회차</span>
     ${FORCE?`<span><i style="background:var(--int-bg);box-shadow:inset 0 -4px 0 var(--hia)"></i>그 달에 휴재 있음</span><span><i style="background:var(--hia-bg)"></i>한 달 내내 휴재</span>`:""}
-    <span><i style="background:repeating-linear-gradient(135deg,#E1E2DD 0 4px,#EEEFEB 4px 8px)"></i>제작 중단 (담당 미정)</span>
+    <span><i style="background:repeating-linear-gradient(135deg,#E1E2DD 0 4px,#EEEFEB 4px 8px)"></i>제작 중단</span>
+    <span><i style="border:1px dashed var(--line2);background:none"></i>착수 대기 (신규 인력 충원 시)</span>
     <span>→ ${YEND+1}년 이후 런칭</span>
     <span>작품명을 누르면 제작 일정으로 이동합니다.</span>
   </div>`;
@@ -999,6 +1117,7 @@ function renderOpen(){
   document.querySelectorAll("[data-mv]").forEach(b=>b.onclick=()=>{
     const o=staffOrder(), i=o.indexOf(b.dataset.id), j=i+(+b.dataset.mv); if(j<0||j>=o.length) return;
     [o[i],o[j]]=[o[j],o[i]]; CONF.staff.order=o; saveConf(); });
+
   if($("replan")) $("replan").onclick=()=>{
     const P=planCoverage();
     if(!P.changes.length&&!P.added.length&&!P.removed.length){ alert(P.gaps.length?"더 메울 방법이 없습니다 (이미 늦은 구간만 남음).":"이미 매주 2작품 이상 연재 중입니다."); return; }
@@ -1031,7 +1150,8 @@ function covLine(){
   const txt=g.length?`<span class="tag bad">${g.length}주 미달</span> ${rng(g).map(r=>`${ymd(r.a)}${key(r.a)!==key(r.b)?`~${ymd(r.b)}`:""}`).join(", ")}`
     :`<span class="tag good">충족</span> ${ymd(C.S0)} ~ ${ymd(D(PLAN_END))} 매주 ${MIN_ON_AIR}작품 이상`;
   return `<p class="lead-sub" style="margin:4px 0 2px">연재 중 최소 ${MIN_ON_AIR}작품: ${txt}
-    <button type="button" class="btn" id="replan" style="padding:2px 10px;margin-left:6px;font-size:12px">최소 ${MIN_ON_AIR}작품 유지로 다시 편성</button></p>`;
+    <button type="button" class="btn" id="replan" style="padding:2px 10px;margin-left:6px;font-size:12px">최소 ${MIN_ON_AIR}작품 유지로 다시 편성</button></p>
+`;
 }
 /* ── 제작 일정 ── */
 const isOk=(c)=>c.kind==="ok"||!!c.done;
@@ -1049,27 +1169,62 @@ function toggleDone(w,S,k,sk){
   }else{ o.ok=true; o.f=key(doneDate(c)); delete o.d; }
   edit(w.id,[Object.keys(o).length?{p:["ov",K],v:o}:{p:["ov",K],del:true}]);
 }
+/* 회차별 제작 중단 / 활성화 */
+function epCtl(w,S,k){
+  const p=(w.pauses||[]).find(x=>x.ep===k);
+  if(p&&p.resume) return `<span class="epz" title="${esc(pauseTxt(w))}">중단→${md(D(p.resume))} 재개</span><button type="button" class="epb" data-resume="${k}" title="재개일 바꾸기">재개일</button><button type="button" class="epb" data-unpause="${k}" title="중단 표시 없애기">취소</button>`;
+  if(k<=(+w.done||0)||S.held) return "";
+  return `<button type="button" class="epb" data-pause="${k}" title="${k}화부터 제작 중단">중단</button>`;
+}
+function openResume(w,k,anchor){
+  const pop=$("pop"), p=(w.pauses||[]).find(x=>x.ep===k)||{};
+  if(isHire(p)){   // 인력 충원 → 착수일 확정: 대기 표시를 없애고 착수일로 계산
+    pop.innerHTML=`<h4>착수일 정하기</h4><p class="ps">${esc(w.n)} · 신규 인력 충원 후 1화 영상 1차 제작 시작일</p>
+      <div class="row"><span>착수일</span><input class="in" type="date" id="rsD" value="${key(nextBD(TODAY))}"></div>
+      <div class="row"><span>담당자</span><input class="in" id="rsO" style="flex:1" placeholder="충원된 담당자 이름"></div>
+      <div class="acts"><button type="button" class="btn" id="rsX">닫기</button><button type="button" class="btn pri" id="rsA">▶ 착수</button></div>`;
+    pop.hidden=false;
+    const r=anchor.getBoundingClientRect(); pop.style.left=Math.max(8,r.left+window.scrollX)+"px"; pop.style.top=(r.bottom+window.scrollY+6)+"px";
+    $("rsX").onclick=closePop;
+    $("rsA").onclick=()=>{ const v=$("rsD").value; if(!v) return; const o=$("rsO").value.trim();
+      edit(w.id,[{p:["pauses"],v:(w.pauses||[]).filter(x=>x!==p&&x.ep!==k)},{p:["start"],v:key(snapBD(D(v)))},...(o?[{p:["owner"],v:o}]:[])]); closePop(); };
+    return;
+  }
+  pop.innerHTML=`<h4>${k}화부터 제작 재개 (활성화)</h4><p class="ps">${esc(w.n)} · ${p.from?`${ymd(D(p.from))}부터 중단`:""}</p>
+    <div class="row"><span>재개일</span><input class="in" type="date" id="rsD" value="${p.resume||key(nextBD(TODAY))}"></div>
+    <p class="note">이 날부터 ${k}화 영상 1차 제작을 다시 시작합니다. 휴일이면 다음 영업일로 맞춥니다.</p>
+    <div class="acts"><button type="button" class="btn" id="rsX">닫기</button><button type="button" class="btn pri" id="rsA">▶ 활성화</button></div>`;
+  pop.hidden=false;
+  const r=anchor.getBoundingClientRect(), cw=document.documentElement.clientWidth;
+  pop.style.left=Math.max(8,Math.min(r.left+window.scrollX,window.scrollX+cw-356))+"px"; pop.style.top=(r.bottom+window.scrollY+6)+"px";
+  $("rsX").onclick=closePop;
+  $("rsA").onclick=()=>{ const v=$("rsD").value; if(!v) return;
+    const list=(w.pauses||[]).filter(x=>x.ep!==k); list.push({ep:k,from:p.from||key(TODAY),resume:key(snapBD(D(v)))});
+    edit(w.id,[{p:["pauses"],v:list}]); closePop(); };
+}
 function renderProd(){
-  if(!WORKS.length){ $("v-prod").innerHTML=`<div class="card"><p>등록된 작품이 없습니다.</p><button type="button" class="btn pri" id="addW">+ 작품 추가</button></div>`; $("addW").onclick=addWork; return; }
+  if(!WORKS.length){ $("v-prod").innerHTML=`<div class="card"><p>등록된 작품이 없습니다.</p><button type="button" class="btn pri" id="addW">+ 작품 추가</button></div>`; $("addW").onclick=(e)=>{e.stopPropagation();addWork(e);}; return; }
   if(!WORKS.some(w=>w.id===SEL)) SEL=WORKS[0].id;
   const w=WORKS.find(x=>x.id===SEL), S=schedule(w), B=schedule(w,false);
   let h=`<div class="prodlay"><nav class="wlist" aria-label="작품 목록">`;
   WORKS.forEach(x=>{const s=schedule(x);
     h+=`<button type="button" class="wi" data-w="${x.id}" aria-current="${x.id===SEL}"><b>${esc(x.n)}</b>
-      ${x.tbd||x.pause?`<span class="ws">${tbdTag(x,1)}${x.pause?`<span class="tag pzt" style="font-size:10px;padding:0 5px">중단</span>`:""}</span>`:""}<span class="ws"><span class="lnd ${lineOf(x)}"></span>${isHeld(x)?`<span style="color:var(--bad);font-weight:600">보류 · 담당 미정</span>`:`${ymd(s.L).slice(2)} 런칭`}</span></button>`;});
+      ${x.tbd||pauseOf(x)?`<span class="ws">${tbdTag(x,1)}${pauseOf(x)?`<span class="tag pzt" style="font-size:10px;padding:0 5px">${esc(pauseShort(x))}</span>`:""}</span>`:""}<span class="ws"><span class="lnd ${lineOf(x)}"></span>${s.held?`<span style="font-weight:600">런칭 미정</span>`:`${ymd(s.L).slice(2)} 런칭`}${x.voice==="ai"?" · AI 성우":""}</span></button>`;});
   h+=`<button type="button" class="btn add" id="addW">+ 작품 추가</button></nav><div>`;
 
   const f=(lab,fk,type,extra="")=>{
     const v=w[fk]??"";
     return `<label>${lab}<input class="in ${type==="number"?"n":"t"}" type="${type}" data-f="${fk}" value="${esc(v)}" ${extra}></label>`;
   };
-  const CE=S.eps[S.crit];
+  const CE=S.held?null:S.eps[S.crit];
   h+=`<div class="whead">
     <div class="wtitle"><input data-f="n" value="${esc(w.n)}" size="${Math.max(6,w.n.length+2)}" aria-label="작품명">
-      <span class="ln ${lineOf(w)}" style="font-size:11px;padding:1px 7px">${LINE_LABEL[lineOf(w)]}</span>${tbdTag(w)}${w.pause?`<span class="tag pzt">제작 중단</span>`:""}<span class="vo human">인간 성우</span>
+      <span class="ln ${lineOf(w)}" style="font-size:11px;padding:1px 7px">${LINE_LABEL[lineOf(w)]}</span>${tbdTag(w)}${pauseOf(w)?`<span class="tag pzt">${esc(pauseShort(w))}</span>`:""}<span class="vo ${w.voice==="ai"?"ai":"human"}">${w.voice==="ai"?"AI 성우":"인간 성우"}</span>
       <span class="sp"></span><button type="button" class="btn danger" id="delW">작품 삭제</button></div>
     <div class="fgrid">
       <div class="gl">제작</div><div class="fields">
+        <label>제작 라인<select class="in" data-sel="line"><option value="int"${lineOf(w)==="int"?" selected":""}>내부 제작</option><option value="ext"${lineOf(w)==="ext"?" selected":""}>외부 제작</option></select></label>
+        <label>성우<select class="in" data-sel="voice"><option value="human"${w.voice!=="ai"?" selected":""}>인간 성우</option><option value="ai"${w.voice==="ai"?" selected":""}>AI 성우</option></select></label>
         ${f("담당자","owner","text")}
         ${f("1차 제작 완료 회차","done","number",`min="0" max="${S.N}"`)}
         ${f("다음 회차 착수일","start","date")}
@@ -1081,14 +1236,17 @@ function renderProd(){
         <label>오픈 방식<span class="in" style="border-color:transparent;padding-left:0;color:var(--ink2)">런칭 ${OPEN_K}화 · 이후 주 1회 · 휴재 없음</span></label>
       </div>
     </div>
-    <div class="stats">
+    <div class="stats">${S.held?`
+      <div class="stat"><div class="sl">예상 런칭</div><div class="sv">미정 <small style="color:var(--ink2)">${S.held.ep}화부터 제작 중단 · 재개 미정</small></div></div>
+      <div class="stat"><div class="sl">적용 공정</div><div class="sv" style="font-size:14px">${VAR_LABEL[VARIANT(w)]}</div></div>`:`
       <div class="stat"><div class="sl">예상 런칭 (휴재 없는 최단)</div><div class="sv">${ymd(S.L)} (${WD[S.L.getUTCDay()]})</div></div>
       <div class="stat"><div class="sl">런칭일을 정하는 조건</div><div class="sv">${S.critGate?`${esc(S.critGate.s.n)} <small style="color:var(--ink2)">완료 ${ymd(S.critGate.e)} → 런칭 ${ymd(S.L)}</small>`:`${S.crit}화 <small style="color:var(--ink2)">최종본 ${ymd(CE.ready)} → 오픈 ${ymd(CE.open)}</small>`}</div></div>
       <div class="stat"><div class="sl">완결 (${S.N}화)</div><div class="sv">${ymd(S.end)}</div></div>
+      <div class="stat"><div class="sl">적용 공정</div><div class="sv" style="font-size:14px">${VAR_LABEL[VARIANT(w)]}</div></div>`}
     </div>
   </div>`;
 
-  if(w.pause) h+=`<div class="pzbar">⏸ <b>제작 중단</b> — ${esc(pauseTxt(w))}. 표에서 ${w.pause.after+1}화 영상 1차 제작부터 재개일 기준으로 계산됩니다.</div>`;
+  if(pauseOf(w)) h+=`<div class="pzbar">⏸ <b>제작 중단</b> — ${esc(pauseTxt(w))}. ${pauseOf(w).resume?`${pauseOf(w).ep}화 영상 1차 제작부터 재개일 기준으로 계산됩니다.`:"재개일을 정하면(▶ 활성화) 이어서 계산됩니다. 그 전까지 런칭은 '미정'입니다."}</div>`;
   h+=`<div class="gtools"><div class="legend">
       <span>칸을 누르면 소요일 · 완료일을 고칠 수 있습니다 (영업일 · 한국 공휴일 제외)</span>
       <span><b style="color:var(--warn)">▢</b> 소요일 변경</span><span><b style="color:var(--good)">●</b> 칸 오른쪽 동그라미 = 완료 처리</span><span><b style="color:var(--bad)">▎</b> 예정일 지남 · 완료 확인 필요</span><span><b>◆</b> 완료일 지정</span><span><i class="mm" style="white-space:nowrap;font-style:normal;font-size:10px;font-weight:700;background:var(--page);padding:0 4px;border-radius:3px">메모</i> 마우스를 올리거나 눌러서 확인</span>
@@ -1096,15 +1254,16 @@ function renderProd(){
       <span style="background:#F4F3EC;padding:0 6px;border-radius:4px">음영 열 = ${BATCH}화 묶음 · 작품 1회 단계</span>
     </div></div>
     <div class="gridwrap"><table class="eg"><thead><tr><th class="ep">회차</th>`;
-  S.ST.forEach(s=>h+=`<th class="${s.sc!=="ep"&&s.k!=="prod1"?"dubh":""}" title="${esc(s.n)} · ${SC_LABEL[s.k==="prod1"?"ep":s.sc]}${s.sc==="ep"&&s.upto>0?` · 1~${s.upto}화만`:""}${s.sc==="work"?(s.gate==="open"?" · 런칭 전까지 완료":" · 다음 단계가 기다림"):""}">${esc(s.s)}${s.sc==="ep"&&s.upto>0?` <span class="upto">1~${s.upto}화</span>`:""}${s.par?` <span class="upto" title="다음 단계와 동시에 진행 — 자막 최종 영상본 전까지만 끝나면 됨">병행</span>`:""}<small>${esc(teamOf(s,w))}</small></th>`);
-  h+=`<th class="rd">최종본 완료<small>오픈 ${CONF.lockBD}영업일 전까지</small></th><th class="op">오픈일<small>매주 ${WD[S.L.getUTCDay()]}요일</small></th></tr></thead><tbody>`;
-  const lim=SHOWALL?S.N:Math.min(S.N,Math.max(20,S.crit+2));
+  S.ST.forEach(s=>h+=`<th class="${s.sc!=="ep"&&s.k!=="prod1"?"dubh":""}" title="${esc(s.n)} · ${SC_LABEL[s.k==="prod1"?"ep":s.sc]}${s.sc==="ep"&&uptoOf(s,w)>0?` · 1~${uptoOf(s,w)}화만`:""}${s.sc==="work"?(s.gate==="open"?" · 런칭 전까지 완료":" · 다음 단계가 기다림"):""}">${esc(s.s)}${s.sc==="ep"&&uptoOf(s,w)>0?` <span class="upto">1~${uptoOf(s,w)}화</span>`:""}${concOf(s,w)&&s.conc==="ext"?` <span class="upto" title="1~3화는 작가 승인과 동시에 진행">1~3화 병렬</span>`:""}${s.par?` <span class="upto" title="다음 단계와 동시에 진행 — 자막 최종 영상본 전까지만 끝나면 됨">병행</span>`:""}<small>${esc(teamOf(s,w))}</small></th>`);
+  h+=`<th class="rd">최종본 완료<small>오픈 ${CONF.lockBD}영업일 전까지</small></th><th class="op">오픈일<small>${S.held?"런칭 미정":`매주 ${WD[S.L.getUTCDay()]}요일`}</small></th></tr></thead><tbody>`;
+  const NR=S.held?(S.N0||0):S.N;   // 실제 계산된 회차 수
+  const lim=SHOWALL?NR:Math.min(NR,Math.max(20,(S.crit||0)+2));
   for(let k=1;k<=lim;k++){
     const E=S.eps[k], BE=B.eps[k];
-    h+=`<tr class="${k<=S.K?"k":""}"><td class="ep">${k}화</td>`;
+    h+=`<tr class="${k<=S.K?"k":""}"><td class="ep">${k}화${epCtl(w,S,k)}</td>`;
     S.ST.forEach(s=>{
       const c=E.cells[s.k], bc=BE.cells[s.k];
-      if(c.skip){ h+=`<td class="na" title="${esc(s.n)}: 1~${s.upto}화만 진행">—</td>`; return; }
+      if(c.skip){ h+=`<td class="na" title="${esc(s.n)}: 1~${uptoOf(s,w)}화만 진행">—</td>`; return; }
       if(c.work){
         if(k!==1) return;
         const late=bc?bdDiff(bc.e,c.e):0;
@@ -1122,25 +1281,36 @@ function renderProd(){
       }
       if(c.done&&c.kind!=="fix"&&c.kind!=="ok"){ h+=`<td>${ckBtn(c,k,s)}<button type="button" class="cl done" data-ep="${k}" data-s="${s.k}"><span class="dt">완료</span><span class="du">1차 제작 끝${c.m?` <i class="mm">메모</i>`:""}</span></button></td>`; return; }
       const late=bc&&!c.done?bdDiff(bc.e,c.e):0;
-      if(w.pause&&s.k==="prod1"&&k===w.pause.after+1) h+=`<td class="pzc"><span class="pzl">⏸ 중단 → ${md(D(w.pause.resume))} 재개</span>${ckBtn(c,k,s)}<button type="button" class="cl ${c.kind}${stCls(c)}" data-ep="${k}" data-s="${s.k}" title="${esc(s.n)} ${k}화 · ${c.s?ymd(c.s)+" ~ ":""}${ymd(c.e)}">
-        <span class="dt">${mdY(c.e)}</span><span class="du">${duTxt(c,0)}</span></button></td>`;
-      else h+=`<td>${ckBtn(c,k,s)}<button type="button" class="cl ${c.kind}${stCls(c)}" data-ep="${k}" data-s="${s.k}" title="${esc(s.n)} ${k}화 · ${c.s?ymd(c.s)+" ~ ":""}${ymd(c.e)}${c.m?"\n"+esc(c.m):""}">
+      h+=`<td>${ckBtn(c,k,s)}<button type="button" class="cl ${c.kind}${stCls(c)}" data-ep="${k}" data-s="${s.k}" title="${esc(s.n)} ${k}화 · ${c.s?ymd(c.s)+" ~ ":""}${ymd(c.e)}${c.m?"\n"+esc(c.m):""}">
         <span class="dt">${mdY(c.e)}</span><span class="du">${c.done?"완료":duTxt(c,late)}${c.m?` <i class="mm">메모</i>`:""}</span></button></td>`;
     });
     h+=`<td class="rdc">${mdY(E.ready)}</td>`;
+    if(S.held){ h+=`<td class="opc"><div class="ov" style="color:var(--muted)">미정</div><div class="du">&nbsp;</div></td></tr>`; continue; }
     const isC=k===S.crit;
     h+=`<td class="opc${isC?" crit":""}" title="오픈 ${ymd(E.open)} · 최종본 여유 ${E.slack}영업일"><div class="ov">${mdY(E.open)}${k===1?`<span class="badge l">런칭</span>`:""}${isC?`<span class="badge c">기준</span>`:""}</div>
       <div class="du">여유 ${E.slack}일</div></td></tr>`;
   }
+  if(S.held){   // 중단된 회차부터는 계산하지 않음
+    const p=S.held;
+    h+=`<tr class="pzrow"><td class="ep">${p.ep}~${S.N}화</td><td colspan="${S.ST.length+2}">
+      <span class="pzl2">${isHire(p)?"⏳ 착수 대기 — 신규 인력이 충원되면 착수 (기존 인력은 현재 작품 계속 연재)":`⏸ ${ymd(D(p.from))}부터 제작 중단 · 재개 미정`}</span>
+      <button type="button" class="btn pri" data-resume="${p.ep}" style="padding:3px 10px;margin-left:8px">${isHire(p)?"▶ 착수일 정하기":"▶ 활성화 (재개일 정하기)"}</button>
+      ${isHire(p)?"":`<button type="button" class="btn" data-unpause="${p.ep}" style="padding:3px 10px;margin-left:4px">중단 취소</button>`}</td></tr>`;
+  }
   h+=`</tbody></table></div>`;
-  if(S.N>lim||SHOWALL) h+=`<button type="button" class="btn more" id="more">${SHOWALL?"접기":`나머지 ${S.N-lim}화 보기`}</button>`;
+  h+=`<div class="epadd">${NR>lim||SHOWALL?`<button type="button" class="btn" id="more">${SHOWALL?"접기":`나머지 ${NR-lim}화 보기`}</button>`:""}
+    <span class="sp"></span><span class="hint">현재 총 ${S.N}화</span>
+    <button type="button" class="btn" data-addep="-5"${S.N<=5?" disabled":""}>− 5화</button>
+    <button type="button" class="btn pri" data-addep="5">+ 5화 추가</button></div>`;
   h+=`<p class="hint" style="margin-top:10px">'기준' 표시 회차가 런칭일을 정합니다. 이 회차를 당기면(소요일 단축·인력 추가) 런칭도 당겨지고, 여유가 0에 가까운 회차가 밀리면 런칭이 뒤로 갑니다.</p></div></div>`;
   $("v-prod").innerHTML=h;
 
   document.querySelectorAll(".wi").forEach(b=>b.onclick=()=>{SEL=b.dataset.w;SHOWALL=false;render();});
-  $("addW").onclick=addWork;
+  $("addW").onclick=(e)=>{e.stopPropagation();addWork(e);};
   $("delW").onclick=()=>{ if(confirm(`'${w.n}' 작품을 삭제합니다. 모든 사람 화면에서 사라집니다. 계속할까요?`)) delWork(w.id); };
   if($("more")) $("more").onclick=()=>{SHOWALL=!SHOWALL;render();};
+  document.querySelectorAll("#v-prod [data-addep]").forEach(b=>b.onclick=()=>{
+    const n=clamp((+w.total||0)+(+b.dataset.addep),5,300); SHOWALL=true; edit(w.id,[{p:["total"],v:n}]); });
   document.querySelectorAll("#v-prod [data-f]").forEach(el=>el.onchange=()=>{
     const fk=el.dataset.f; let v=el.value;
     if(["done","rate","total","b1"].includes(fk)){ v=parseInt(v,10); if(isNaN(v))return;
@@ -1150,6 +1320,24 @@ function renderProd(){
     else if(fk==="start"){ v=key(snapBD(D(v))); }   // 착수일은 영업일로
     edit(w.id,[{p:[fk],v}]);
   });
+  document.querySelectorAll("#v-prod [data-sel]").forEach(el=>el.onchange=()=>{
+    if(el.dataset.sel==="voice"){ edit(w.id,[{p:["voice"],v:el.value}]); return; }
+    if(el.dataset.sel==="cont"){ edit(w.id,[{p:["cont"],v:el.value==="1"}]); return; }
+    const ext=el.value==="ext", tmp={...w,team:ext?{...(w.team||{}),prod1:"외부 제작사",prodF:"외부 제작사"}:{}};
+    const ps=ext?[{p:["team","prod1"],v:"외부 제작사"},{p:["team","prodF"],v:"외부 제작사"},{p:["line"],v:"ext"}]
+               :[{p:["team","prod1"],del:true},{p:["team","prodF"],del:true},{p:["line"],v:"int"}];
+    tmp.line=el.value; ps.push({p:["rate"],v:defRate(tmp)});   // 라인 기본 1차 제작 일수로
+    edit(w.id,ps);
+  });
+  document.querySelectorAll("#v-prod [data-pause]").forEach(b=>b.onclick=(e)=>{e.stopPropagation();
+    const k=+b.dataset.pause, c=S.eps[k]&&S.eps[k].cells.prod1, from=c&&c.s&&c.s>TODAY?c.s:TODAY;
+    if(!confirm(`${k}화부터 제작을 중단합니다. 재개일을 정할 때까지 런칭은 '미정'으로 표시됩니다.`)) return;
+    const others=(w.pauses||[]).filter(p=>p.ep<k&&p.resume);
+    edit(w.id,[{p:["pauses"],v:[...others,{ep:k,from:key(from),resume:null}]}]); });
+  document.querySelectorAll("#v-prod [data-resume]").forEach(b=>b.onclick=(e)=>{e.stopPropagation(); openResume(w,+b.dataset.resume,b);});
+  document.querySelectorAll("#v-prod [data-unpause]").forEach(b=>b.onclick=(e)=>{e.stopPropagation();
+    if(!confirm("중단 표시를 없애고 원래 일정대로 계산할까요?")) return;
+    edit(w.id,[{p:["pauses"],v:(w.pauses||[]).filter(p=>p.ep!==+b.dataset.unpause)}]); });
   document.querySelectorAll("#v-prod .ck[data-ck]").forEach(b=>b.onclick=(e)=>{e.stopPropagation();toggleDone(w,S,+b.dataset.ck,b.dataset.s);});
   document.querySelectorAll("#v-prod .cl[data-ep]").forEach(b=>b.onclick=(e)=>{e.stopPropagation();openPop(w,S,+b.dataset.ep,b.dataset.s,b);});
 }
@@ -1208,27 +1396,27 @@ document.addEventListener("click",(e)=>{ const p=$("pop"); if(!p.hidden&&!p.cont
 /* ── 공정 기준 ── */
 function renderStd(){
   const st=CONF.stages, sum=(f)=>st.reduce((a,s)=>a+(+s[f]||0),0);
+  const VK=["ih","ia","eh","ea"];
+  const tot=(v)=>st.filter(x=>x.k!=="contract"&&!x.par&&x.conc!==true&&!(x.conc==="ext"&&v[0]==="e")).reduce((a,x)=>a+(+x.v[v]||0),0);
   let h=`<h2>회차당 공정 (영업일 · 주말·한국 공휴일 제외)</h2>
-  <div class="card"><table class="std"><thead><tr><th>단계</th><th>담당 부서</th><th class="r">소요 영업일</th><th>진행 단위</th><th title="비우면 전 회차. 예: 3 → 1~3화만 진행">적용 회차</th>
-    <th title="켜면 앞 회차(묶음)의 같은 단계가 끝나야 다음이 시작됩니다">회차 순차</th><th title="켜면 다음 단계를 막지 않고 동시에 진행 — 자막 최종 영상본 전까지만 끝나면 됩니다">병행</th><th title="켜면 바로 앞 단계와 같은 날 시작 (예: 등급 피드백은 대사 번역과 함께 5일 안에)">동시 시작</th></tr></thead><tbody>`;
+  <div class="card"><p class="hint" style="margin:0 0 10px">작품마다 <b>제작 라인(내부/외부)</b>과 <b>성우(인간/AI)</b>에 맞는 열이 적용됩니다. 기본은 인간 성우이고, 제작 일정 탭에서 작품별로 AI 성우를 고를 수 있어요. 0은 그 프로세스에 없는 단계예요.</p>
+  <table class="std"><thead><tr><th>단계</th><th>담당 부서</th>${VK.map(k=>`<th class="r">${VAR_LABEL[k]}</th>`).join("")}<th>진행 단위</th><th title="비우면 전 회차">적용 회차</th><th title="다음 단계를 막지 않고 동시에 진행 — 자막 최종 영상본 전까지만 끝나면 됨">병렬</th><th title="앞 단계와 같은 날 시작">동시 시작</th></tr></thead><tbody>`;
   st.forEach((s,i)=>{
-    h+=`<tr><td>${esc(s.n)}</td><td><input class="in" style="width:150px" data-i="${i}" data-c="team" value="${esc(s.team)}" aria-label="${esc(s.n)} 담당 부서"></td>
-      <td class="r">${s.k==="contract"?`<span class="hint">제작 시작</span> <input class="in n" type="number" min="0" max="120" data-i="${i}" data-c="h" value="${s.h}"> <span class="hint">일 전</span>`:s.k==="prod1"?`<span class="hint">작품별 · 기본 ${s.h}</span>`:`<input class="in n" type="number" min="0" max="120" data-i="${i}" data-c="h" value="${s.h}">`}</td>
-      <td>${s.k==="contract"?`<span class="hint">작품 1회 · 기한 (일정 영향 없음)</span>`:s.k==="prod1"?`<span class="hint">회차별</span>`:`<select class="in" data-i="${i}" data-c="sc">${Object.entries(SC_LABEL).map(([v,t])=>`<option value="${v}"${s.sc===v?" selected":""}>${t}</option>`).join("")}</select>
-        ${s.sc==="work"?`<select class="in" data-i="${i}" data-c="gate"><option value="next"${s.gate!=="open"?" selected":""}>다음 단계 전 완료</option><option value="open"${s.gate==="open"?" selected":""}>런칭 전까지 완료</option></select>`:""}`}</td>
-      <td>${s.sc==="ep"&&s.k!=="prod1"?`1~<input class="in n" style="width:56px" type="number" min="0" max="300" data-i="${i}" data-c="upto" value="${s.upto||""}" placeholder="전체">화`:`<span class="hint">전체</span>`}</td>
-      <td>${s.sc==="work"?"":`<input type="checkbox" data-i="${i}" data-c="seq"${s.seq?" checked":""} aria-label="${esc(s.n)} 회차 순차">`}</td>
-      <td>${s.sc==="ep"&&s.k!=="prod1"&&s.k!=="burn"?`<input type="checkbox" data-i="${i}" data-c="par"${s.par?" checked":""} aria-label="${esc(s.n)} 병행">`:""}</td>
-      <td>${s.k!=="prod1"&&s.k!=="contract"?`<input type="checkbox" data-i="${i}" data-c="conc"${s.conc?" checked":""} aria-label="${esc(s.n)} 동시 시작">`:""}</td></tr>`;
+    const num=(k)=>`<input class="in n" style="width:58px" type="number" min="0" max="120" data-i="${i}" data-c="v" data-var="${k}" value="${s.v[k]}">`;
+    h+=`<tr><td>${esc(s.n)}${s.k==="prod1"?`<div class="hint">작품별 설정이 우선 · 새 작품 기본값</div>`:s.k==="contract"?`<div class="hint">제작 시작 N영업일 전까지 (일정 영향 없음)</div>`:s.k==="casting"?`<div class="hint">첫 묶음만 · 사운드 30일 + 2일</div>`:""}</td>
+      <td><input class="in" style="width:130px" data-i="${i}" data-c="team" value="${esc(s.team)}" aria-label="${esc(s.n)} 담당 부서"></td>
+      ${VK.map(k=>`<td class="r">${num(k)}</td>`).join("")}
+      <td>${s.k==="contract"?`<span class="hint">작품 1회 · 기한</span>`:s.k==="prod1"?`<span class="hint">회차별 · 순차</span>`:`<select class="in" data-i="${i}" data-c="sc">${Object.entries(SC_LABEL).map(([v,t])=>`<option value="${v}"${s.sc===v?" selected":""}>${t}</option>`).join("")}</select>`}</td>
+      <td>${typeof s.upto==="object"&&s.upto?["i","e"].map(L=>`<div style="white-space:nowrap"><span class="hint">${L==="i"?"내부":"외부"}</span> 1~<input class="in n" style="width:52px" type="number" min="0" max="300" data-i="${i}" data-c="uptoL" data-l="${L}" value="${s.upto[L]||""}" placeholder="전체">화</div>`).join(""):s.sc==="ep"&&s.k!=="prod1"?`1~<input class="in n" style="width:52px" type="number" min="0" max="300" data-i="${i}" data-c="upto" value="${s.upto||""}" placeholder="전체">화`:`<span class="hint">전체</span>`}</td>
+      <td>${s.sc!=="work"&&s.k!=="prod1"&&s.k!=="burn"?`<input type="checkbox" data-i="${i}" data-c="par"${s.par?" checked":""} aria-label="${esc(s.n)} 병렬">`:""}</td>
+      <td>${s.conc==="ext"?`<span class="hint">외부 1~3화<br>(작가 승인과)</span>`:s.k!=="prod1"&&s.k!=="contract"?`<input type="checkbox" data-i="${i}" data-c="conc"${s.conc===true?" checked":""} aria-label="${esc(s.n)} 동시 시작">`:""}</td></tr>`;
   });
-  h+=`</tbody><tfoot><tr><td>합계</td><td></td><td class="r">${st.filter(s=>s.sc!=="work"&&!s.par).reduce((a,s)=>a+(+s.h||0),0)}<span class="hint"> (1~3화 · 4화부터 ${st.filter(s=>s.sc!=="work"&&!s.par&&!(s.upto>0)).reduce((a,s)=>a+(+s.h||0),0)})</span></td><td></td><td></td><td></td><td></td><td></td></tr></tfoot></table>
-    <p class="hint" style="margin:10px 0 0">성우는 전 작품 인간 성우 기준입니다. 0일인 단계는 제작 일정 표에서 빠집니다. 영상 1차 제작 일수는 작품마다 '회차당 1차 제작'으로 따로 관리합니다.<br>
-    <b>동시 시작</b>: 앞 단계와 같은 날 시작합니다. 등급 분류 피드백은 대사 번역과, 성우 캐스팅은 대사집 확정과 같은 기간에 진행됩니다.<br>
-    <b>계약 체결</b>: 제작 시작 10영업일(2주) 전까지 끝나야 하는 기한이며, 제작 일정에는 영향을 주지 않습니다.<br>
-    <b>병행</b>: 켜면 이 단계는 뒤 단계를 막지 않고 동시에 진행하며, 자막 최종 영상본 전까지만 끝나면 됩니다 (자막 번역 = 성우 캐스팅·더빙과 동시 준비).<br>
-    <b>적용 회차</b>: 숫자를 넣으면 그 회차까지만 진행합니다 (작가·내부 승인은 1~3화만). 비우면 전 회차.<br>
-    <b>${BATCH}화 묶음</b>: 묶음 안 모든 회차가 앞 단계를 마쳐야 시작하고, 묶음 전체가 같은 날 끝납니다.<br>
-    <b>작품 1회</b>: 1화가 이 단계에 오면 한 번 진행합니다. '다음 단계 전 완료'면 모든 회차의 다음 단계가 기다리고, '런칭 전까지 완료'면 제작은 계속 가고 런칭만 이 뒤로 잡힙니다.</p></div>
+  h+=`</tbody><tfoot><tr><td>1~3화 합계</td><td class="hint">병렬 제외 · 첫 묶음 캐스팅 포함</td>${VK.map(k=>`<td class="r">${tot(k)}</td>`).join("")}<td colspan="4"></td></tr></tfoot></table>
+    <p class="hint" style="margin:10px 0 0">
+    <b>사운드 통으로 30일</b>: 대사집 확정 7 + 성우 더빙 18 + 믹싱 5 = 30일(5회차씩). 첫 묶음에만 성우 캐스팅 2일이 더해집니다. AI 성우는 믹싱 2일만 있어요.<br>
+    <b>병렬</b>: 뒤 단계를 막지 않고 동시에 진행하며, 자막 최종 영상본 전까지만 끝나면 됩니다 (자막 번역).<br>
+    <b>동시 시작</b>: 앞 단계와 같은 날 시작합니다. 등급 분류 피드백은 1~3화 승인과 병렬이고, 외부 제작은 내부 승인도 작가 승인과 병렬이에요.<br>
+    <b>적용 회차</b>: 작가 승인은 1~3화만. 내부 승인은 내부 제작 1~3화만, 외부 제작은 전 회차(1~3화는 작가 승인과 병렬, 4화부터는 2일 단독). <b>${BATCH}회차씩</b>: 묶음 안 모든 회차가 준비돼야 시작하고 묶음 전체가 같은 날 끝납니다.</p></div>
   <h2>오픈 규칙</h2>
   <div class="card"><div class="rules">
     <span>런칭 시 <b>${OPEN_K}화</b> 동시 오픈</span><span>이후 <b>주 1회</b></span><span><b>휴재 없음</b> — 완결까지 끊기지 않는 가장 이른 날로 런칭일 자동 결정</span>
@@ -1262,8 +1450,10 @@ grant select, insert, update, delete on ${T_CONF}  to anon;</div>
   $("v-std").innerHTML=h;
   document.querySelectorAll("#v-std [data-c]").forEach(el=>el.onchange=()=>{
     const s=CONF.stages[+el.dataset.i], c=el.dataset.c;
+    if(c==="v"){ const v=parseInt(el.value,10); if(isNaN(v)) return; s.v={...s.v,[el.dataset.var]:clamp(v,0,120)}; s.h=s.v.ih; saveConf(); return; }
     if(c==="seq"||c==="par"||c==="conc") s[c]=el.checked;
     else if(c==="sc"||c==="gate") s[c]=el.value;
+    else if(c==="uptoL"){ const v=parseInt(el.value,10); s.upto={...(s.upto||{}),[el.dataset.l]:isNaN(v)||v<=0?0:clamp(v,1,300)}; }
     else if(c==="upto"){ const v=parseInt(el.value,10); s.upto=isNaN(v)||v<=0?0:clamp(v,1,300); }
     else if(c==="team"){ const v=el.value.trim(); if(!v) return; s.team=v; }
     else { const v=parseInt(el.value,10); if(isNaN(v))return; s[c]=clamp(v,0,120); }
@@ -1296,7 +1486,7 @@ function applyPatch(o,{p,v,del}){
   if(del) delete x[p[p.length-1]]; else x[p[p.length-1]]=v;
 }
 const SB={on:!!(SUPABASE_URL&&SUPABASE_ANON_KEY)};
-const PENDING={}, SEEN={}, TIMERS={};
+const PENDING={}, SEEN={}, TIMERS={}; let REMOTE_IDS=new Set();
 let CONF_SEEN=null;
 const hhmm=()=>new Date().toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"});
 function setSync(s,t,tip){const c=$("sync");c.dataset.s=s;c.textContent=t;c.title=tip||"";}
@@ -1323,13 +1513,17 @@ function edit(id,patches){
   patches.forEach(p=>applyPatch(w,p));
   if(before){   // 고친 결과가 오픈 일정에 어떻게 반영됐는지 바로 알려줌
     const after=schedule(w); LAST_EDIT={id,t:Date.now()};
-    const a=before.L, b=after.L, dw=weeks(a,b);
+    const a=before.L, b=after.L;
+    if(!a||!b){ toast(`<b>${esc(w.n)}</b> ${!b?`제작 중단 — 오픈 일정에 '${esc(pauseShort(w))}'로 표시됩니다`:`${before.held&&isHire(before.held)?"착수":"제작 재개"} — 예상 런칭 <b>${ymd(b)}</b> · 최소 회차 공개 ${ymd(after.end)}`}`); }
+    else { const dw=weeks(a,b);
     toast(key(a)!==key(b)
-      ?`<b>${esc(w.n)}</b> 오픈 일정 반영 — 런칭 ${ymd(a)} → <b>${ymd(b)}</b> (${dw>0?`${dw}주 늦어짐`:`${-dw}주 당겨짐`}) · 완결 ${ymd(after.end)}`
-      :`<b>${esc(w.n)}</b> 런칭 ${ymd(b)} 그대로 — ${after.L>lminOf(w)?`목표·편성 런칭일(${md(D(w.launch))}) 기준이라 더 당겨지지 않음`:`이 변경은 여유 기간 안에서 흡수됨`}`);
+      ?`<b>${esc(w.n)}</b> 오픈 일정 반영 — 런칭 ${ymd(a)} → <b>${ymd(b)}</b> (${dw>0?`${dw}주 늦어짐`:`${-dw}주 당겨짐`}) · ${after.N}화 공개 ${ymd(after.end)}`
+      :`<b>${esc(w.n)}</b> 런칭 ${ymd(b)} 그대로 — ${after.L>lminOf(w)?`목표·편성 런칭일(${md(D(w.launch))}) 기준이라 더 당겨지지 않음`:`이 변경은 여유 기간 안에서 흡수됨`}`); }
   }
-  if(SB.on){ (PENDING[id]=PENDING[id]||[]).push(...patches); clearTimeout(TIMERS[id]); TIMERS[id]=setTimeout(()=>pushWork(id),500); setSync("busy","저장 대기…"); }
-  render();
+  if(SB.on){
+    if(MIGRATING){ MIG.dirty.add(id); return; }
+    (PENDING[id]=PENDING[id]||[]).push(...patches); clearTimeout(TIMERS[id]); TIMERS[id]=setTimeout(()=>pushWork(id),500); setSync("busy","저장 대기…"); }
+  if(!MIGRATING) render();
 }
 async function pushWork(id){
   const ps=PENDING[id]||[]; if(!ps.length) return; PENDING[id]=[];
@@ -1351,6 +1545,7 @@ async function pushWork(id){
   }
 }
 async function saveConf(){
+  if(MIGRATING){ if(MIG) MIG.conf=true; return; }
   render();
   if(!SB.on) return;
   setSync("busy","저장 중…");
@@ -1359,15 +1554,37 @@ async function saveConf(){
     CONF_SEEN=now; setSync("on",`공유 중 · ${hhmm()} 저장됨`);
   }catch(e){ setSync("err","공정 기준 저장 실패 — 새로고침 후 다시 시도해 주세요"); }
 }
-function addWork(){
+function addWork(ev){
+  const pop=$("pop"), anchor=ev&&ev.currentTarget||$("addW");
+  pop.innerHTML=`<h4>작품 추가</h4><p class="ps">나중에 제작 일정 탭에서 모두 바꿀 수 있어요</p>
+    <div class="row"><span>작품명</span><input class="in" id="nwN" style="flex:1" value="새 작품"></div>
+    <div class="row"><span>제작 라인</span><select class="in" id="nwL"><option value="int">내부 제작</option><option value="ext">외부 제작</option></select></div>
+    <div class="row"><span>성우</span><select class="in" id="nwV"><option value="human">인간 성우 (기본)</option><option value="ai">AI 성우</option></select></div>
+    <div class="row"><span>착수일</span><input class="in" type="date" id="nwS" value="${key(nextBD(TODAY))}"></div>
+    <div class="row"><span>총 회차</span><input class="in n" type="number" id="nwT" min="1" max="300" value="20"></div>
+    <div class="acts"><button type="button" class="btn" id="nwX">닫기</button><button type="button" class="btn pri" id="nwA">추가</button></div>`;
+  pop.hidden=false;
+  const r=anchor.getBoundingClientRect();
+  pop.style.left=Math.max(8,r.left+window.scrollX)+"px"; pop.style.top=Math.max(8,r.top+window.scrollY-pop.offsetHeight-6)+"px";
+  $("nwX").onclick=closePop;
+  $("nwA").onclick=()=>{
+    const line=$("nwL").value, voice=$("nwV").value, n=$("nwN").value.trim()||"새 작품";
+    const base={line,voice}; const w0={...base,team:line==="ext"?{prod1:"외부 제작사",prodF:"외부 제작사"}:undefined};
+    createWork({n,line,voice,start:key(snapBD(D($("nwS").value||key(TODAY)))),total:clamp(parseInt($("nwT").value,10)||20,1,300),
+      rate:defRate(w0),owner:line==="ext"?"외부 제작사":"",...(line==="ext"?{team:{prod1:"외부 제작사",prodF:"외부 제작사"}}:{})});
+    closePop();
+  };
+}
+function createWork(fields){
   const id="w"+Date.now().toString(36), pos=Math.max(0,...WORKS.map(w=>w.pos||0))+1;
-  const w=normW({id,pos,n:"새 작품",start:key(snapBD(TODAY))});
+  const w=normW({id,pos,...fields});
   WORKS.push(w); SEL=id;
   if(SB.on){ (PENDING[id]=PENDING[id]||[]).push({p:["n"],v:w.n}); pushWork(id); }
   render();
 }
 async function delWork(id){
   WORKS=WORKS.filter(w=>w.id!==id); delete PENDING[id]; clearTimeout(TIMERS[id]);
+  if(MIGRATING){ if(MIG){ MIG.del.add(id); MIG.dirty.delete(id); } return; }
   render();
   if(SB.on){ try{ await sb("DELETE",T_WORKS,`?id=eq.${encodeURIComponent(id)}`); setSync("on",`공유 중 · ${hhmm()} 삭제됨`);}
     catch(e){ setSync("err","삭제 실패 — 새로고침 후 다시 시도해 주세요"); } }
@@ -1387,7 +1604,7 @@ async function pullAll(force){
   const rows=await sb("GET",T_WORKS,"?select=id,pos,data,updated_at&order=pos.asc");
   const cf=await sb("GET",T_CONF,"?id=eq.default&select=data,updated_at");
   let changed=false;
-  const ids=new Set(rows.map(r=>r.id));
+  const ids=new Set(rows.map(r=>r.id)); REMOTE_IDS=ids;
   rows.forEach(r=>{
     if(PENDING[r.id]&&PENDING[r.id].length) return;
     if(!force&&SEEN[r.id]===r.updated_at) return;
@@ -1426,8 +1643,8 @@ document.querySelectorAll(".tabs button").forEach(b=>b.addEventListener("click",
   setSync("busy","공유 저장소 불러오는 중…"); render();
   try{
     const r=await pullAll(true);
-    if(r.empty) await replaceAll(clone(DEFAULT_WORKS).map(normW),clone(DEFAULT_CONF));
-    runMigrations();
+    if(r.empty){ WORKS=clone(DEFAULT_WORKS).map(normW); CONF=normConf(DEFAULT_CONF); setHol(CONF.hol); }
+    await runMigrations();
     setSync("on",`공유 중 · ${hhmm()} 불러옴`);
   }catch(e){ console.error("Supabase 연결 오류:",e); if(!WORKS.length) WORKS=clone(DEFAULT_WORKS).map(normW); const [t,tip]=errMsg(e); setSync("err",`공유 저장소 연결 실패 — ${t}`,tip); }
   render();
