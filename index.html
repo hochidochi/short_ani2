@@ -1583,8 +1583,8 @@ create or replace function is_admin() returns boolean language sql stable securi
 
 create or replace function handle_new_user() returns trigger language plpgsql security definer set search_path=public as $$
 begin
-  -- 회사 메일만 받으려면 아래 줄의 앞 '--'를 지우고 도메인을 바꾸세요
-  -- if new.email not ilike '%@company.com' then raise exception 'company mail only'; end if;
+  -- 회사 메일(@webtoonscorp.com)만 가입 가능
+  if new.email not ilike '%@webtoonscorp.com' then raise exception 'company mail only'; end if;
   insert into app_users(id,email,name) values (new.id, new.email, coalesce(new.raw_user_meta_data->>'name',''));
   return new;
 end $$;
@@ -1607,13 +1607,14 @@ create policy "approved rw" on anime_works  for all to authenticated using (is_a
 create policy "approved rw" on anime_config for all to authenticated using (is_approved()) with check (is_approved());
 grant select, insert, update, delete on anime_works, anime_config to authenticated;
 
--- ④ (사이트에서 가입 신청을 한 다음) 나를 관리자로 — 메일 주소를 바꿔서 실행
--- update app_users set approved=true, is_admin=true where email='내메일@company.com';`;
+-- ④ 관리자 지정은 이 파일과 따로! 사이트에서 가입 신청 + 메일 인증을 마친 뒤,
+--    새 쿼리 창에 아래 한 줄만 ('--' 없이) 붙여넣고 실행하세요:
+--    update app_users set approved=true, is_admin=true where email='myun.kim@webtoonscorp.com';`;
 /* ======================= 로그인 · 관리자 승인 =======================
    회사 메일로 가입 → '승인 대기' → 관리자가 '사용자 승인' 탭에서 승인해야 일정 데이터를 볼 수 있음.
    실제 보안은 Supabase(RLS)가 담당: 승인된 계정만 anime_* 테이블을 읽고 쓸 수 있음.            */
 const AUTH_REQUIRED = true;
-const MAIL_DOMAIN   = "";   // 예: "@company.com" — 넣으면 이 도메인 메일만 가입 가능 (SQL에서도 한 번 더 막음)
+const MAIL_DOMAIN   = "@webtoonscorp.com";   // 예: "@company.com" — 넣으면 이 도메인 메일만 가입 가능 (SQL에서도 한 번 더 막음)
 const SESS_KEY="anime_sched_session";
 let SESSION=null, ME=null;
 const lsGet=(k)=>{try{return JSON.parse(localStorage.getItem(k)||"null");}catch(e){return null;}};
