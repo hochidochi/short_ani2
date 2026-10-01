@@ -783,6 +783,11 @@ function runMigrations0(){
     CONF.migr.push("ext-contract-1001"); dirty=true;
     if(has("owners-2609b")) applyPlan(planCoverage());
   }
+  if(!has("total-20-b")){   // 기본 회차 20화로 전체 통일
+    WORKS.forEach(w=>{ if(+w.total!==20) edit(w.id,[{p:["total"],v:20}]); });
+    CONF.migr.push("total-20-b"); dirty=true;
+    if(has("owners-2609b")) applyPlan(planCoverage());
+  }
   if(dirty) saveConf();
 }
 const normW=(w)=>(w=>({...w,voice:w.voice==="ai"?"ai":"human",cont:w.cont!==false}))({n:"새 작품",owner:"",voice:"human",done:0,rate:7,start:key(TODAY),b1:BATCH,total:20,
@@ -1278,8 +1283,9 @@ function covLine(){
    연재 방식(정기/시즌제)·공개 주기·런칭 오픈 회차·런칭일(자동/고정)·버퍼·등급분류·더빙 묶음·총 회차·AI 성우·
    작품별 착수일·제작 속도·포함 여부를 바꾸면 오픈 일정이 어떻게 되는지 바로 계산 */
 let SIM=null;
+const simName=(w)=>w&&lineOf(w)==="ext"?"미정":(w&&w.n||"");   // 시뮬레이션에서는 외부 작품 이름을 '미정'으로
 const SIM_DEF=()=>({mode:"regular",seasonN:10,restW:4,restAuto:true,cad:1,openK:3,launchMode:"auto",launch:"2026-12-21",
-  buf:0,rating:false,batch:5,total:"",ai:"keep",
+  buf:0,rating:false,batch:5,total:20,ai:"keep",
   spdI:0,spdE:0,           // ① 1차 제작 속도 (%) 내부/외부 — 음수면 빨라짐
   prodPar:1,              // ② 외주 영상 1차 동시 진행 회차 수
   sndPar:1,               // ③ 외주 사운드 동시 진행 묶음 수
@@ -1394,7 +1400,7 @@ function simCompute(){
           for(let c=monOnOrAfter(addDays(t,-7*80));c<=t;c=addDays(c,7)){ const S=schedule(probe(c)); const P=simOpens(S,o,null,0); if(P.L<=t) best={c,S}; else break; }
           if(!best||best.c<today){ hard.push(t); break; }
           const P=simOpens(best.S,o,t,o.mode==="season"?(+o.restW||0):0);
-          add.push({n:`필요 외부 ${++n}`,start:best.c,L:P.L,end:P.end,P,S:best.S});
+          add.push({n:`미정 (추가 ${++n})`,start:best.c,L:P.L,end:P.end,P,S:best.S});
           addW([...new Set(P.opens.filter(Boolean).map(d=>key(monOnOrAfter(addDays(d,-6)))))]);
         }
       }
@@ -1450,13 +1456,13 @@ function renderSim(){
       <label class="cb"><span><input type="checkbox" data-so="noAuto"${o.noAuto?" checked":""}> 자동 편성 외부 프로젝트 빼고 계산</span></label>
     </div>`;
   // 결론 + KPI
-  const verdict=first?`첫 오픈 <b>${ymd(first.P.L)}</b> (${esc(first.w.n)}) · 2026년 ${yr(2026)}작품 · 2027년 ${yr(2027)}작품 · 2028년 ${yr(2028)}작품 오픈`:"포함된 작품이 없어요";
+  const verdict=first?`첫 오픈 <b>${ymd(first.P.L)}</b> (${esc(simName(first.x||first.w))}) · 2026년 ${yr(2026)}작품 · 2027년 ${yr(2027)}작품 · 2028년 ${yr(2028)}작품 오픈`:"포함된 작품이 없어요";
   h+=`<div class="simv"><div>${verdict}</div>
     <div class="hint">${o.launchMode==="fixed"?`${ymd(D(o.launch))} 고정 · 휴재 합계 <b style="color:var(--hia)">${hiatus}주</b>`:"모든 작품 휴재 없는 가장 빠른 날"}${weeksOn?` · 공개 중 작품 최소 <b>${weeksOn.min}개</b> (${ymd(weeksOn.at)} 주, ${ymd(weeksOn.s0)} 이후)`:""}${R.some(r=>r.held)?` · 착수일 미정이라 빠진 작품 ${R.filter(r=>r.held).length}개`:""}</div></div>`;
   // ⑥ 목표 공개 작품 수 결과
   if(R.need){ const N_=R.need;
     h+=`<h2>⑥ 매주 ${N_.M}작품 이상 공개하려면</h2><div class="card">${N_.add.length?`<p style="margin:0 0 8px">외부 프로젝트가 <b>${N_.add.length}개</b> 더 필요해요.${o.noAuto?"":" (자동 편성 외부 프로젝트를 포함한 상태에서 추가로 필요한 수예요)"}</p>
-      <table class="std"><thead><tr><th>프로젝트</th><th>늦어도 착수</th><th>런칭</th><th>마지막 회차</th></tr></thead><tbody>${N_.add.map(a=>`<tr><td><b>${a.n}</b></td><td><b>${ymd(a.start)}</b></td><td>${ymd(a.L)}</td><td>${ymd(a.end)}</td></tr>`).join("")}</tbody></table>`
+      <table class="std"><thead><tr><th>외부 작품</th><th>늦어도 착수</th><th>런칭</th><th>마지막 회차</th></tr></thead><tbody>${N_.add.map(a=>`<tr><td><b>${a.n}</b></td><td><b>${ymd(a.start)}</b></td><td>${ymd(a.L)}</td><td>${ymd(a.end)}</td></tr>`).join("")}</tbody></table>`
       :`<p style="margin:0">지금 조건으로 <b>매주 ${N_.M}작품 이상</b> 공개돼요. 추가 프로젝트가 필요 없어요.</p>`}
       ${N_.hard.length?`<p class="hint" style="margin:8px 0 0">지금 착수해도 맞출 수 없는 주가 ${N_.hard.length}주 있어요 (첫 주: ${ymd(N_.hard[0])}). 기존 작품의 런칭 조정이나 제작 속도 옵션으로만 메울 수 있어요.</p>`:""}</div>`; }
   // 월간표
@@ -1491,7 +1497,7 @@ function renderSim(){
       cells[ri].forEach((c,i)=>{ const cl=(i===nowM?" now":"")+yb(i);
         h+= c.st==="launch"?`<td class="c launch${cl}">${P.L.getUTCDate()}일<small>${c.n}화</small></td>`:c.st==="end"?`<td class="c end${cl}">${r.S.N}화</td>`:c.st==="serial"?`<td class="c serial${cl}">${c.n}</td>`:c.st==="prod"?`<td class="c prod${cl}"></td>`:c.st==="rest"?`<td class="c srest${cl}">시즌 휴재</td>`:`<td class="c${cl}"></td>`; });
       h+=`</tr>`; return; }
-    h+=`<tr class="ln-${lineOf(r.x)}"><th class="rl"><span class="nm" style="cursor:default">${esc(w.n)}${ageBadge(w)}</span>
+    h+=`<tr class="ln-${lineOf(r.x)}"><th class="rl"><span class="nm" style="cursor:default">${esc(simName(r.x))}${lineOf(r.x)==="ext"?"":ageBadge(w)}</span>
       <span class="mt"><span class="ln ${lineOf(r.x)}">${lineOf(r.x)==="ext"?"외부":"내부"}</span>${r.x.voice==="ai"?'<span class="vo ai" style="font-size:10px">AI</span>':""}${md(P.L)} 런칭${d?` <b style="color:${d>0?"var(--bad)":"var(--good)"}">${d>0?"+":""}${d}주</b>`:""}${P.hiatus?` · <b style="color:var(--hia)">휴재 ${P.hiatus}주</b>`:""}${o.mode==="season"?` · 시즌 휴재 ${r.rest}주`:""}${r.capShift?` · <span title="⑤ 월별 런칭 상한으로 미룸">상한 +${r.capShift}주</span>`:""}</span></th>`;
     cells[ri].forEach((c,i)=>{ const cl=(i===nowM?" now":"")+yb(i)+(c.g&&c.n?" gap":"");
       if(c.st==="launch") h+=`<td class="c launch${cl}" title="런칭 ${ymd(P.L)}">${P.L.getUTCDate()}일<small>${c.n}화</small></td>`;
@@ -1511,7 +1517,7 @@ function renderSim(){
     <th>포함</th><th>작품</th><th>성우</th><th>착수일</th><th class="r">1차 제작(일)</th><th class="r">총 회차</th><th>시뮬 런칭</th><th>현재 확정</th><th>마지막 회차</th><th class="r">휴재</th></tr></thead><tbody>`;
   WORKS.forEach(w=>{ const r=SIM.rows[w.id], res=R.find(x=>x.w.id===w.id), hold=holdOf(w);
     h+=`<tr class="${r.inc?"":"off"}"><td><input type="checkbox" data-sr="inc" data-id="${w.id}"${r.inc?" checked":""}></td>
-      <td><span class="lnd ${lineOf(w)}"></span><b>${esc(w.n)}</b>${w.auto?' <span class="hint">자동 편성</span>':""}${hold?` <span class="tag ${isHire(hold)?"tbd":"pzt"}" style="font-size:10px">${esc(pauseShort(w))}</span>`:""}</td>
+      <td><span class="lnd ${lineOf(w)}"></span><b>${esc(simName(w))}</b>${lineOf(w)==="ext"?` <span class="hint">외부${w.auto?" · 자동 편성":""} · ${esc((w.start||"").slice(2).replace(/-/g,"."))} 착수</span>`:""}${hold?` <span class="tag ${isHire(hold)?"tbd":"pzt"}" style="font-size:10px">${esc(pauseShort(w))}</span>`:""}</td>
       <td><select class="in" data-sr="voice" data-id="${w.id}"><option value="keep"${r.voice==="keep"?" selected":""}>현재 (${w.voice==="ai"?"AI":"인간"})</option><option value="human"${r.voice==="human"?" selected":""}>인간</option><option value="ai"${r.voice==="ai"?" selected":""}>AI</option></select></td>
       <td>${hold&&isHire(hold)?`<input class="in t" type="date" data-sr="hire" data-id="${w.id}" value="${r.hire||""}" title="신규 인력 충원 후 착수 가정일">`:`<input class="in t" type="date" data-sr="start" data-id="${w.id}" value="${r.start||""}" placeholder="${esc(w.start||"")}" title="현재 ${esc(w.start||"")}">`}</td>
       <td class="r"><input class="in n" style="width:56px" type="number" min="1" max="60" data-sr="rate" data-id="${w.id}" value="${r.rate}" placeholder="${w.rate}"></td>
