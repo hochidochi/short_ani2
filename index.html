@@ -406,13 +406,13 @@ const DEFAULT_CONF={
     {k:"intAppr", n:"내부 승인",         s:"내부 승인",   team:"내부관계자",       v:{ih:5, ia:5, eh:2, ea:2},  sc:"ep",    upto:{i:3,e:0}, conc:"ext"},   // 내부: 작가+내부 = 10 (1~3화) · 외부: 1~3화 병렬, 4화부터 2일   // 내부: 1~3화만 · 외부: 전 회차 (1~3화는 작가 승인과 병렬)
     {k:"ratingFb",n:"등급 분류 피드백",   s:"등급 피드백", team:"내부관계자",       v:{ih:2, ia:2, eh:2, ea:2},  sc:"ep",    upto:3, conc:"author"},   // 1~3화만 · 승인과 병렬 (추가 기간 없음)
     {k:"prodF",   n:"영상 최종 수정",     s:"영상 최종",   team:"내부 제작팀",      v:{ih:5, ia:5, eh:5, ea:5},  sc:"ep",    upto:{i:3,e:0}},   // 내부: 1~3화만 · 외부: 전 회차
-    {k:"trans",   n:"대사 번역",         s:"대사 번역",   team:"GW content",       v:{ih:5, ia:5, eh:5, ea:5},  sc:"batch"},  // 5회차씩
-    {k:"script",  n:"성우 대사집 확정",   s:"대사집 확정", team:"사운드 스튜디오",  v:{ih:7, ia:0, eh:7, ea:0},  sc:"batch"},  // ┐
+    {k:"trans",   n:"대사 번역",         s:"대사 번역",   team:"GW content",       v:{ih:5, ia:5, eh:5, ea:5},  sc:"batch", conc:{i:false,e:true}},  // 5회차씩 · 외부: 영상 최종 수정과 병행
+    {k:"script",  n:"성우 대사집 확정",   s:"대사집 확정", team:"사운드 스튜디오",  v:{ih:7, ia:0, eh:0, ea:0},  sc:"batch"},  // ┐ 외부는 '더빙·믹싱'에 포함
     {k:"subtr",   n:"자막 번역",         s:"자막 번역",   team:"GW content",       v:{ih:2, ia:2, eh:2, ea:2},  sc:"batch", par:true},   // │ 병렬 (5회차씩)
-    {k:"casting", n:"성우 캐스팅",       s:"성우 캐스팅", team:"사운드 스튜디오",  v:{ih:2, ia:0, eh:2, ea:0},  sc:"work",  gate:"next"},   // │ 사운드 통으로 30 + 최초 묶음만 캐스팅 2일
-    {k:"dub",     n:"성우 더빙",         s:"성우 더빙",   team:"사운드 스튜디오",  v:{ih:18,ia:0, eh:18,ea:0},  sc:"batch"},  // │
-    {k:"mix",     n:"사운드 믹싱 최종본", s:"믹싱 최종본", team:"사운드 스튜디오",  v:{ih:5, ia:2, eh:5, ea:2},  sc:"batch"},  // ┘ (AI 성우는 믹싱 2일만)
-    {k:"burn",    n:"자막 최종 영상본",   s:"자막 최종본", team:"내부 제작팀",      v:{ih:1, ia:1, eh:1, ea:1},  sc:"ep"},
+    {k:"casting", n:"성우 캐스팅",       s:"성우 캐스팅", team:"사운드 스튜디오",  v:{ih:2, ia:0, eh:3, ea:0},  sc:"work",  gate:"next", atStart:{e:true}},   // │ 사운드 통으로 30 + 최초 묶음만 캐스팅 2일
+    {k:"dub",     n:"성우 더빙",         s:"성우 더빙",   team:"사운드 스튜디오",  v:{ih:18,ia:0, eh:20,ea:0}, vf:{eh:30}, sc:"batch", seq:{i:false,e:true}, sx:"더빙·믹싱"},  // │ 외부: 첫 묶음 30 · 이후 20 · 한 묶음씩
+    {k:"mix",     n:"사운드 믹싱 최종본", s:"믹싱 최종본", team:"사운드 스튜디오",  v:{ih:5, ia:2, eh:0, ea:2},  sc:"batch"},  // ┘ (AI 성우는 믹싱 2일만)
+    {k:"burn",    n:"자막 최종 영상본",   s:"자막 최종본", team:"내부 제작팀",      v:{ih:1, ia:1, eh:1, ea:1},  sc:"ep", seq:{i:false,e:true}},   // 외부: 사운드 납품 후 회차당 1일씩
     {k:"rating",  n:"영상 등급분류",     s:"등급분류",    team:"영등위",           v:{ih:15,ia:15,eh:15,ea:15}, sc:"batch"},
   ]
 };
@@ -423,7 +423,7 @@ function normConf(c){
   return {pv:PV,contCount:false,staff:{n:c.staff&&c.staff.n!=null?+c.staff.n:2,order:c.staff&&Array.isArray(c.staff.order)?c.staff.order:[]},lockBD:c.lockBD!=null?+c.lockBD:DEFAULT_CONF.lockBD, migr:Array.isArray(c.migr)?c.migr:[],
     hol:Array.isArray(c.hol)&&c.hol.length?c.hol:clone(DEFAULT_HOL),
     stages:DEFAULT_CONF.stages.map(d=>{const x=saved.find(y=>y.k===d.k)||{};
-      return {...d,v:{...d.v,...(x.v||{})},h:(x.v||d.v).ih,sc:x.sc||d.sc,gate:x.gate||d.gate,seq:x.seq!=null?!!x.seq:!!d.seq,team:x.team||d.team,upto:x.upto!=null?(typeof x.upto==="object"?x.upto:+x.upto):(d.upto||0),par:x.par!=null?!!x.par:!!d.par,conc:x.conc!=null?x.conc:(d.conc||false)};})};
+      return {...d,v:{...d.v,...(x.v||{})},h:(x.v||d.v).ih,sc:x.sc||d.sc,gate:x.gate||d.gate,seq:x.seq!=null?x.seq:(d.seq||false),vf:x.vf||d.vf,atStart:x.atStart||d.atStart,sx:x.sx||d.sx,team:x.team||d.team,upto:x.upto!=null?(typeof x.upto==="object"?x.upto:+x.upto):(d.upto||0),par:x.par!=null?!!x.par:!!d.par,conc:x.conc!=null?x.conc:(d.conc||false)};})};
 }
 
 /* ---------- 기본 작품 (기존 HTML 값 이관) ---------- */
@@ -743,6 +743,17 @@ function runMigrations0(){
     CONF.migr.push("rating-off-0928"); dirty=true;
     if(has("owners-2609b")) applyPlan(planCoverage());
   }
+  if(!has("ext-gantt-0930")){   // 외주(외부 제작사·인간 성우) 시즌 1 제작 스케줄 반영
+    const S_=(k)=>CONF.stages.find(x=>x.k===k);
+    const tr=S_("trans");   if(tr) tr.conc={i:false,e:true};
+    const sc=S_("script");  if(sc) sc.v={...sc.v,eh:0};
+    const ca=S_("casting"); if(ca){ ca.v={...ca.v,eh:3}; ca.atStart={e:true}; }
+    const du=S_("dub");     if(du){ du.v={...du.v,eh:20}; du.vf={eh:30}; du.seq={i:false,e:true}; du.sx="더빙·믹싱"; }
+    const mx=S_("mix");     if(mx) mx.v={...mx.v,eh:0};
+    const bu=S_("burn");    if(bu) bu.seq={i:false,e:true};
+    CONF.migr.push("ext-gantt-0930"); dirty=true;
+    if(has("owners-2609b")) applyPlan(planCoverage());
+  }
   if(dirty) saveConf();
 }
 const normW=(w)=>(w=>({...w,voice:w.voice==="ai"?"ai":"human",cont:w.cont!==false}))({n:"새 작품",owner:"",voice:"human",done:0,rate:7,start:key(TODAY),b1:BATCH,total:20,
@@ -769,7 +780,11 @@ const defRate=(w)=>{const s=CONF.stages.find(x=>x.k==="prod1");return +(s.v[VARI
 const durOf=(s,w)=>s.k==="prod1"?Math.max(1,+w.rate||defRate(w)):+((s.v||{})[VARIANT(w)]??s.h);
 const uptoOf=(s,w)=>typeof s.upto==="object"&&s.upto?+(s.upto[lineOf(w)==="ext"?"e":"i"]||0):+(s.upto||0);
 /* conc "ext": 외부 제작에서, 같은 회차에 작가 승인이 있을 때만(1~3화) 작가 승인과 동시에 */
-const concOf=(s,w,k)=>{ if(s.conc===true) return true;
+const LN=(w)=>lineOf(w)==="ext"?"e":"i";
+const seqOf=(s,w)=>typeof s.seq==="object"&&s.seq?!!s.seq[LN(w)]:!!s.seq;
+const labelOf=(s,w)=>LN(w)==="e"&&s.sx?s.sx:s.s;
+const concOf=(s,w,k)=>{ if(s&&typeof s.conc==="object"&&s.conc){ const c=s.conc[LN(w)]; return concOf({...s,conc:c===true?true:c==="author"?"author":false},w,k); }
+  if(s.conc===true) return true;
   if(s.conc!=="ext"&&s.conc!=="author") return false; if(s.conc==="ext"&&lineOf(w)!=="ext") return false;
   if(k==null) return true; const a=CONF.stages.find(x=>x.k==="author"), u=a?uptoOf(a,w):0; return !(u>0&&k>u); };
 const stagesFor=(w)=>CONF.stages.filter(s=>s.k==="prod1"||s.k==="contract"||durOf(s,w)>0);
@@ -822,7 +837,7 @@ function scheduleCore(w,useOv=true){
         if(k<=done){ const e=o&&o.f?fixD(o.f):doneEnd;
           eps[k].cells.prod1={e,d:base,base,done:true,kind:o&&o.f?"fix":"",m:o&&o.m||""}; bump(k,e); markMain(s,k,eps[k].cells.prod1); continue; }
         let d=durO(o,base);
-        let st=(k<=done+1||!s.seq)?start0:nextBD(eps[k-1].cells.prod1.e);
+        let st=(k<=done+1||!seqOf(s,w))?start0:nextBD(eps[k-1].cells.prod1.e);
         if(prev[k]&&nextBD(prev[k])>st) st=nextBD(prev[k]);
         if(resumes[k]&&resumes[k]>st) st=resumes[k];   // 제작 중단 후 재개일
         let e=d>0?addBD(st,d-1):prevBD(st);
@@ -838,7 +853,7 @@ function scheduleCore(w,useOv=true){
         const cell={s:null,e,d:base,base,kind:mkKind(o),m:o&&o.m||"",work:true,gate:"none",due:true};
         for(let k=1;k<=N;k++) eps[k].cells[s.k]=cell; return;
       }
-      let st=conc?(lastMain[1]||start0):(prev[1]?nextBD(prev[1]):start0);
+      let st=s.atStart&&s.atStart[LN(w)]?start0:conc?(lastMain[1]||start0):(prev[1]?nextBD(prev[1]):start0);   // atStart: 제작 시작과 함께
       let e=d>0?addBD(st,d-1):prevBD(st);
       let slip=false, pin=null; if(o&&o.f){ pin=fixD(o.f); if(st&&pin<st&&!o.ok&&!o.lock&&!conc&&!s.par) slip=true; else { e=pin; if(e<st) st=null; else d=bdDiff(st,e)+1; } }   // 앞 단계가 늦어져 지정일을 못 지키면 밀림
       const cell={s:st,e,d,base,kind:mkKind(o),m:o&&o.m||"",work:true,gate:s.gate||"next",slip,pin};
@@ -848,13 +863,15 @@ function scheduleCore(w,useOv=true){
     }
     if(s.sc==="batch"){
       let prevB=null;
-      BT.forEach(([a,b])=>{
-        const o=ov[`${a}:${s.k}`]||null; let d=durO(o,base);
+      BT.forEach(([a,b],bi)=>{
+        const vf=s.vf&&s.vf[VARIANT(w)]!=null&&bi===0?+s.vf[VARIANT(w)]:null;   // 첫 묶음만 다른 기간
+        const bBase=vf!=null?vf:base;
+        const o=ov[`${a}:${s.k}`]||null; let d=durO(o,bBase);
         let st=null; for(let k=a;k<=b;k++){const x=conc?(lastMain[k]||start0):(prev[k]?nextBD(prev[k]):start0); if(!st||x>st) st=x;}
-        if(s.seq&&prevB){const x=nextBD(prevB); if(x>st) st=x;}
+        if(seqOf(s,w)&&prevB){const x=nextBD(prevB); if(x>st) st=x;}   // 한 묶음씩
         let e=d>0?addBD(st,d-1):prevBD(st);
         let slip=false, pin=null; if(o&&o.f){ pin=fixD(o.f); if(st&&pin<st&&!o.ok&&!o.lock&&!conc&&!s.par) slip=true; else { e=pin; if(e<st) st=null; else d=bdDiff(st,e)+1; } }   // 앞 단계가 늦어져 지정일을 못 지키면 밀림
-        for(let k=a;k<=b;k++){ eps[k].cells[s.k]={s:st,e,d,base,kind:mkKind(o),m:o&&o.m||"",batch:[a,b],slip,pin,par:!!s.par};
+        for(let k=a;k<=b;k++){ eps[k].cells[s.k]={s:st,e,d,base:bBase,kind:mkKind(o),m:o&&o.m||"",batch:[a,b],slip,pin,par:!!s.par};
           if(s.par){ if(!parEnds[k]||e>parEnds[k]) parEnds[k]=e; } else { bump(k,e); markMain(s,k,eps[k].cells[s.k]); } }
         prevB=e;
       });
@@ -865,7 +882,7 @@ function scheduleCore(w,useOv=true){
       const o=ov[`${k}:${s.k}`]||null; let d=durO(o,base);
       const cK=concOf(s,w,k);
       let st=cK?(lastMain[k]||start0):(prev[k]?nextBD(prev[k]):start0);
-      if(s.seq&&k>1&&!eps[k-1].cells[s.k].skip){const x=nextBD(eps[k-1].cells[s.k].e); if(x>st) st=x;}
+      if(seqOf(s,w)&&k>1&&!eps[k-1].cells[s.k].skip){const x=nextBD(eps[k-1].cells[s.k].e); if(x>st) st=x;}
       let e=d>0?addBD(st,d-1):(prev[k]||prevBD(st));
       let slip=false, pin=null; if(o&&o.f){ pin=fixD(o.f); if(st&&pin<st&&!o.ok&&!o.lock&&!conc&&!s.par) slip=true; else { e=pin; if(e<st) st=null; else d=bdDiff(st,e)+1; } }   // 앞 단계가 늦어져 지정일을 못 지키면 밀림   // 앞 단계와 병행해 먼저 끝난 경우
       eps[k].cells[s.k]={s:st,e,d,base,kind:mkKind(o),m:o&&o.m||"",par:!!s.par,slip,pin};
@@ -1321,7 +1338,7 @@ function renderProd(){
       <span style="background:#F4F3EC;padding:0 6px;border-radius:4px">음영 열 = ${BATCH}화 묶음 · 작품 1회 단계</span>
     </div></div>
     <div class="gridwrap"><table class="eg"><thead><tr><th class="ep">회차</th>`;
-  S.ST.forEach(s=>h+=`<th class="${s.sc!=="ep"&&s.k!=="prod1"?"dubh":""}" title="${esc(s.n)} · ${SC_LABEL[s.k==="prod1"?"ep":s.sc]}${s.sc==="ep"&&uptoOf(s,w)>0?` · 1~${uptoOf(s,w)}화만`:""}${s.sc==="work"?(s.gate==="open"?" · 런칭 전까지 완료":" · 다음 단계가 기다림"):""}">${esc(s.s)}${s.sc==="ep"&&uptoOf(s,w)>0?` <span class="upto">1~${uptoOf(s,w)}화</span>`:""}${concOf(s,w)&&(s.conc==="ext"||s.conc==="author")?` <span class="upto" title="1~3화는 작가 승인과 동시에 진행(추가 기간 없음) · 4화부터 ${durOf(s,w)}일 따로">1~3화 병렬</span>`:""}${s.par?` <span class="upto" title="다음 단계와 동시에 진행 — 자막 최종 영상본 전까지만 끝나면 됨">병행</span>`:""}<small>${esc(teamOf(s,w))}</small></th>`);
+  S.ST.forEach(s=>h+=`<th class="${s.sc!=="ep"&&s.k!=="prod1"?"dubh":""}" title="${esc(s.n)} · ${SC_LABEL[s.k==="prod1"?"ep":s.sc]}${s.sc==="ep"&&uptoOf(s,w)>0?` · 1~${uptoOf(s,w)}화만`:""}${s.sc==="work"?(s.gate==="open"?" · 런칭 전까지 완료":" · 다음 단계가 기다림"):""}">${esc(labelOf(s,w))}${s.sc==="ep"&&uptoOf(s,w)>0?` <span class="upto">1~${uptoOf(s,w)}화</span>`:""}${concOf(s,w)&&(s.conc==="ext"||s.conc==="author")?` <span class="upto" title="1~3화는 작가 승인과 동시에 진행(추가 기간 없음) · 4화부터 ${durOf(s,w)}일 따로">1~3화 병렬</span>`:""}${s.par?` <span class="upto" title="다음 단계와 동시에 진행 — 자막 최종 영상본 전까지만 끝나면 됨">병행</span>`:""}<small>${esc(teamOf(s,w))}</small></th>`);
   h+=`<th class="rd">최종본 완료<small>오픈 ${CONF.lockBD}영업일 전까지</small></th><th class="op">오픈일<small>${S.held?"런칭 미정":`매주 ${WD[S.L.getUTCDay()]}요일`}</small></th></tr></thead><tbody>`;
   const NR=S.held?(S.N0||0):S.N;   // 실제 계산된 회차 수
   const lim=SHOWALL?NR:Math.min(NR,Math.max(20,(S.crit||0)+2));
@@ -1477,9 +1494,9 @@ function renderStd(){
   <table class="std"><thead><tr><th>단계</th><th>담당 부서</th>${VK.map(k=>`<th class="r">${VAR_LABEL[k]}</th>`).join("")}<th>진행 단위</th><th title="비우면 전 회차">적용 회차</th><th title="다음 단계를 막지 않고 동시에 진행 — 자막 최종 영상본 전까지만 끝나면 됨">병렬</th><th title="앞 단계와 같은 날 시작">동시 시작</th></tr></thead><tbody>`;
   st.forEach((s,i)=>{
     const num=(k)=>`<input class="in n" style="width:58px" type="number" min="0" max="120" data-i="${i}" data-c="v" data-var="${k}" value="${s.v[k]}">`;
-    h+=`<tr><td>${esc(s.n)}${s.k==="prod1"?`<div class="hint">작품별 설정이 우선 · 새 작품 기본값</div>`:s.k==="contract"?`<div class="hint">제작 시작 N영업일 전까지 (일정 영향 없음)</div>`:s.k==="casting"?`<div class="hint">첫 묶음만 · 사운드 30일 + 2일</div>`:""}</td>
+    h+=`<tr><td>${esc(s.n)}${s.k==="prod1"?`<div class="hint">작품별 설정이 우선 · 새 작품 기본값</div>`:s.k==="contract"?`<div class="hint">제작 시작 N영업일 전까지 (일정 영향 없음)</div>`:s.k==="casting"?`<div class="hint">내부: 첫 묶음만 +2일 · 외부: 제작 시작과 함께 3일 (일정 영향 없음)</div>`:s.k==="dub"?`<div class="hint">외부: '더빙·믹싱' 통으로 · 한 번에 한 묶음씩</div>`:s.k==="burn"?`<div class="hint">외부: 사운드 납품 후 회차당 1일씩 순서대로</div>`:s.k==="trans"?`<div class="hint">외부: 영상 최종 수정과 병행</div>`:""}</td>
       <td><input class="in" style="width:130px" data-i="${i}" data-c="team" value="${esc(s.team)}" aria-label="${esc(s.n)} 담당 부서"></td>
-      ${VK.map(k=>`<td class="r">${num(k)}</td>`).join("")}
+      ${VK.map(k=>`<td class="r">${num(k)}${s.vf&&s.vf[k]!=null?`<div class="hint" style="white-space:nowrap">첫 묶음 <input class="in n" style="width:46px;min-height:24px;padding:1px 4px" type="number" min="0" max="120" data-i="${i}" data-c="vf" data-var="${k}" value="${s.vf[k]}"></div>`:""}</td>`).join("")}
       <td>${s.k==="contract"?`<span class="hint">작품 1회 · 기한</span>`:s.k==="prod1"?`<span class="hint">회차별 · 순차</span>`:`<select class="in" data-i="${i}" data-c="sc">${Object.entries(SC_LABEL).map(([v,t])=>`<option value="${v}"${s.sc===v?" selected":""}>${t}</option>`).join("")}</select>`}</td>
       <td>${typeof s.upto==="object"&&s.upto?["i","e"].map(L=>`<div style="white-space:nowrap"><span class="hint">${L==="i"?"내부":"외부"}</span> 1~<input class="in n" style="width:52px" type="number" min="0" max="300" data-i="${i}" data-c="uptoL" data-l="${L}" value="${s.upto[L]||""}" placeholder="전체">화</div>`).join(""):s.sc==="ep"&&s.k!=="prod1"?`1~<input class="in n" style="width:52px" type="number" min="0" max="300" data-i="${i}" data-c="upto" value="${s.upto||""}" placeholder="전체">화`:`<span class="hint">전체</span>`}</td>
       <td>${s.sc!=="work"&&s.k!=="prod1"&&s.k!=="burn"?`<input type="checkbox" data-i="${i}" data-c="par"${s.par?" checked":""} aria-label="${esc(s.n)} 병렬">`:""}</td>
@@ -1488,7 +1505,7 @@ function renderStd(){
   h+=`</tbody><tfoot><tr><td>1~3화 합계</td><td class="hint">병렬 제외 · 첫 묶음 캐스팅 포함</td>${VK.map(k=>`<td class="r">${tot(k)}</td>`).join("")}<td colspan="4"></td></tr></tfoot></table>
     <p class="hint" style="margin:10px 0 0">
     <b>영상 등급분류</b>는 당분간 일정에서 뺐어요(0일). 다시 필요하면 네 칸에 15를 넣으면 됩니다.<br>
-    <b>사운드 통으로 30일</b>: 대사집 확정 7 + 성우 더빙 18 + 믹싱 5 = 30일(5회차씩). 첫 묶음에만 성우 캐스팅 2일이 더해집니다. AI 성우는 믹싱 2일만 있어요.<br>
+    <b>사운드 (내부)</b>: 대사집 확정 7 + 성우 더빙 18 + 믹싱 5 = 30일(5회차씩), 첫 묶음에만 성우 캐스팅 2일. <b>사운드 (외부)</b>: 더빙·믹싱 통으로 첫 묶음 30일 · 이후 20일, 한 번에 한 묶음씩(앞 묶음 납품 후 시작), 캐스팅은 제작 시작 1~3일차. AI 성우는 믹싱 2일만 있어요.<br>
     <b>병렬</b>: 뒤 단계를 막지 않고 동시에 진행하며, 자막 최종 영상본 전까지만 끝나면 됩니다 (자막 번역).<br>
     <b>동시 시작</b>: 1~3화는 작가 승인과 같은 날 시작해서 추가 기간이 없어요. 등급 분류 피드백(1~3화만)과 외부 제작의 내부 승인(4화부터는 2일)이 여기에 해당해요.<br>
     <b>적용 회차</b>: 작가 승인·등급 피드백은 1~3화만. 내부 승인과 영상 최종 수정은 내부 제작 1~3화만, 외부 제작은 전 회차. <b>${BATCH}회차씩</b>: 묶음 안 모든 회차가 준비돼야 시작하고 묶음 전체가 같은 날 끝납니다.</p></div>
@@ -1514,6 +1531,7 @@ function renderStd(){
   $("v-std").innerHTML=h;
   document.querySelectorAll("#v-std [data-c]").forEach(el=>el.onchange=()=>{
     const s=CONF.stages[+el.dataset.i], c=el.dataset.c;
+    if(c==="vf"){ const v=parseInt(el.value,10); if(isNaN(v)) return; s.vf={...(s.vf||{}),[el.dataset.var]:clamp(v,0,120)}; saveConf(); return; }
     if(c==="v"){ const v=parseInt(el.value,10); if(isNaN(v)) return; s.v={...s.v,[el.dataset.var]:clamp(v,0,120)}; s.h=s.v.ih; saveConf(); return; }
     if(c==="seq"||c==="par"||c==="conc") s[c]=el.checked;
     else if(c==="sc"||c==="gate") s[c]=el.value;
@@ -1641,6 +1659,7 @@ const authMsg=(e)=>{ const m=String(e&&e.message||e);
   if(/already registered|already exists/i.test(m)) return "이미 가입된 메일이에요. 로그인해 주세요.";
   if(/Password should be/i.test(m)) return "비밀번호는 6자 이상이어야 해요.";
   if(/Database error saving new user/i.test(m)) return "가입할 수 없는 메일이에요. 회사 메일로 가입해 주세요.";
+  if(/email rate limit/i.test(m)) return "인증 메일 발송 한도를 넘었어요 (Supabase 기본 메일은 1시간에 몇 통만 보낼 수 있어요). 관리자에게 알려주시거나 1시간 뒤 다시 시도해 주세요.";
   if(/rate limit/i.test(m)) return "요청이 너무 많아요. 잠시 후 다시 시도해 주세요.";
   return m; };
 function showGate(mode,msg){
