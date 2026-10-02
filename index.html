@@ -977,7 +977,7 @@ function lenStats(w){
   const N=clamp(+w.total||1,1,300), L=w.len||{}, vals=[];
   for(let k=1;k<=N;k++) if(L[k]!=null) vals.push(+L[k]);
   const avg=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null;
-  const def=w.lenDef!=null?+w.lenDef:(avg!=null?avg:null);   // 미입력 회차 추정값: 기본 길이 → 없으면 입력 평균
+  const def=avg;   // 미입력 회차는 입력한 회차의 평균으로 추정
   const est=def!=null?vals.reduce((a,b)=>a+b,0)+def*(N-vals.length):null;
   return {N,n:vals.length,avg,def,sum:vals.reduce((a,b)=>a+b,0),est,min:vals.length?Math.min(...vals):null,max:vals.length?Math.max(...vals):null};
 }
@@ -1375,6 +1375,28 @@ function simAutoRest(S,o,fixedT){
   for(let r=0;r<=52;r++){ const P=simOpens(S,o,L,r); if(P.hiatus<best.h){ best={rest:r,h:P.hiatus}; if(P.hiatus===0) break; } }
   return {rest:best.rest,L};
 }
+/* 한 작품을 시뮬레이션 조건으로 계산 (mod: 작품 사본을 더 고치는 함수) */
+function simOne(w,mod){
+  const o=SIM.o, x=simWork(w); if(mod) mod(x);
+  const S=schedule(x); if(S.held) return {x,S,held:true};
+  const T=o.launchMode==="fixed"?D(o.launch):null;
+  let rest=+o.restW||0, P;
+  if(o.mode==="season"&&o.restAuto){ const a=simAutoRest(S,o,T); rest=a.rest; P=simOpens(S,o,a.L||T,rest); }
+  else P=simOpens(S,o,T,rest);
+  return {x,S,P,rest};
+}
+/* 회차 길이 기준 제작 속도: 분당 1차 제작 영업일 → 빨라지면 회차당 몇 일, 런칭·마지막 회차가 얼마나 당겨지나 */
+const SPEEDS=[-10,-20,-30];
+function simSpeedTable(){
+  return withSim(()=>WORKS.filter(w=>{const r=SIM.rows[w.id];return r&&r.inc&&!(SIM.o.noAuto&&w.auto);}).map(w=>{
+    const base=simOne(w); if(base.held) return {w,held:true};
+    const L=lenStats(w), rate=+base.x.rate||defRate(base.x), min=L.avg!=null?L.avg/60:null;
+    const rows=SPEEDS.map(pct=>{ const exact=rate*(1+pct/100), nr=Math.max(1,Math.round(exact));
+      const r=simOne(w,(x)=>{x.rate=nr;});
+      return {pct,exact,nr,L:r.P.L,end:r.P.end,dL:weeks(base.P.L,r.P.L),dE:bdDiff(r.P.end,base.P.end),save:(rate-nr)*Math.max(0,base.S.N-(+base.x.done||0))}; });
+    return {w,base,rate,min,perMin:min?rate/min:null,rows,len:L};
+  }));
+}
 function simCompute(){
   return withSim(()=>{
     const o=SIM.o, out=[];
@@ -1475,6 +1497,20 @@ function renderSim(){
   const verdict=first?`첫 오픈 <b>${ymd(first.P.L)}</b> (${esc(simName(first.x||first.w))}) · 2026년 ${yr(2026)}작품 · 2027년 ${yr(2027)}작품 · 2028년 ${yr(2028)}작품 오픈`:"포함된 작품이 없어요";
   h+=`<div class="simv"><div>${verdict}</div>
     <div class="hint">${o.launchMode==="fixed"?`${ymd(D(o.launch))} 고정 · 휴재 합계 <b style="color:var(--hia)">${hiatus}주</b>`:"모든 작품 휴재 없는 가장 빠른 날"}${weeksOn?` · 공개 중 작품 최소 <b>${weeksOn.min}개</b> (${ymd(weeksOn.at)} 주, ${ymd(weeksOn.s0)} 이후)`:""}${R.some(r=>r.held)?` · 착수일 미정이라 빠진 작품 ${R.filter(r=>r.held).length}개`:""}</div></div>`;
+  // 회차 길이 기준 제작 속도별 예상
+  const ST_=simSpeedTable();
+  h+=`<h2>제작 속도를 높이면 <span class="hint" style="font-weight:400">회차 길이(평균) 기준 · 영상 1차 제작 일수만 바꿔서 계산 · 다른 조건은 위 설정 그대로</span></h2>
+    <div class="card" style="overflow-x:auto"><table class="std simt"><thead><tr><th>작품</th><th class="r">평균 길이</th><th class="r">회차당 1차 제작</th><th class="r">분당</th>
+    ${SPEEDS.map(p=>`<th class="r">${p}% 빨라지면</th>`).join("")}</tr></thead><tbody>`;
+  ST_.forEach(t=>{ if(t.held) return;
+    h+=`<tr><td><span class="lnd ${lineOf(t.w)}"></span><b>${esc(simName(t.base.x))}</b> <span class="hint">${md(t.base.P.L)} 런칭</span></td>
+      <td class="r">${t.min!=null?fmtLen(t.len.avg):`<span class="hint">미입력</span>`}</td>
+      <td class="r">${t.rate}일</td>
+      <td class="r">${t.perMin?`${t.perMin.toFixed(1)}일/분`:`<span class="hint">–</span>`}</td>
+      ${t.rows.map(r=>`<td class="r"><b>${r.nr}일</b><span class="hint">/회차${r.nr!==Math.round(r.exact*10)/10?` (${r.exact.toFixed(1)})`:""}</span>
+        <div class="hint">런칭 ${r.dL<0?`<b style="color:var(--good)">${-r.dL}주 당김</b>`:"변화 없음"} · 마지막 회차 ${r.dE>0?`<b style="color:var(--good)">${r.dE}영업일 당김</b>`:"–"}</div></td>`).join("")}</tr>`; });
+  h+=`</tbody></table><p class="hint" style="margin:8px 0 0">분당 = 회차당 1차 제작 일수 ÷ 평균 길이(분). 예: 7일 ÷ 3.5분 = 2.0일/분 → 20% 빨라지면 1.6일/분, 회차당 약 5.6일 → <b>6일</b>(영업일은 반올림).
+    회차 길이는 제작 일정 탭의 '길이' 열에서 입력해요. 길이가 없어도 일수 기준 계산은 돼요.</p></div>`;
   // ⑥ 목표 공개 작품 수 결과
   if(R.need){ const N_=R.need;
     h+=`<h2>⑥ 매주 ${N_.M}작품 이상 공개하려면</h2><div class="card">${N_.add.length?`<p style="margin:0 0 8px">외부 프로젝트가 <b>${N_.add.length}개</b> 더 필요해요.${o.noAuto?"":" (자동 편성 외부 프로젝트를 포함한 상태에서 추가로 필요한 수예요)"}</p>
@@ -1607,7 +1643,7 @@ function openResume(w,k,anchor){
 }
 function lenStatHtml(w){ const L=lenStats(w);
   return `<div class="stat"><div class="sl">평균 길이 (${L.n}/${L.N}화 입력)</div><div class="sv">${L.avg!=null?fmtLen(L.avg):"–"}${L.n?`<small style="color:var(--ink2)">최소 ${fmtLen(L.min)} · 최대 ${fmtLen(L.max)}</small>`:""}</div></div>
-    <div class="stat"><div class="sl">총 러닝타임 ${L.n<L.N&&L.est!=null?"(미입력은 추정)":""}</div><div class="sv">${L.est!=null?fmtLen(L.est):L.n?fmtLen(L.sum):"–"}${L.est!=null||L.n?`<small style="color:var(--ink2)">${((L.est!=null?L.est:L.sum)/60).toFixed(2)}분 · 초 단위 합산</small>`:""}</div></div>`; }
+    <div class="stat"><div class="sl">총 러닝타임 (입력한 ${L.n}화)</div><div class="sv">${L.n?fmtLen(L.sum):"–"}${L.n?`<small style="color:var(--ink2)">${(L.sum/60).toFixed(2)}분 · 초 단위 합산${L.n<L.N?` · ${L.N}화 예상 ${fmtLen(L.est)} (평균 기준)`:""}</small>`:""}</div></div>`; }
 function renderProd(){
   if(!WORKS.length){ $("v-prod").innerHTML=`<div class="card"><p>등록된 작품이 없습니다.</p><button type="button" class="btn pri" id="addW">+ 작품 추가</button></div>`; $("addW").onclick=(e)=>{e.stopPropagation();addWork(e);}; return; }
   if(!WORKS.some(w=>w.id===SEL)) SEL=WORKS[0].id;
@@ -1642,7 +1678,6 @@ function renderProd(){
         <label>런칭일<span style="display:flex;gap:6px;align-items:center">
           <select class="in" data-sel="lauto"><option value="1"${w.launchAuto?" selected":""}>가장 빠른 날 (자동)</option><option value="0"${w.launchAuto?"":" selected"}>목표일 이후로</option></select>
           ${w.launchAuto?`<span class="in" style="border-color:transparent;padding-left:0;color:var(--ink2)">${S.L?ymd(S.L):"미정"}</span>`:`<input class="in t" type="date" data-f="launch" value="${esc(w.launch||"")}" aria-label="목표 런칭일">`}</span></label>${f("총 회차","total","number",`min="1" max="300"`)}
-        <label>기본 길이 (회차당)<input class="in n" style="width:72px" data-lendef="1" value="${esc(fmtLen(w.lenDef))}" placeholder="3:30" title="길이를 아직 안 적은 회차를 이 길이로 추정해요"></label>
         <label>오픈 방식<span class="in" style="border-color:transparent;padding-left:0;color:var(--ink2)">런칭 ${OPEN_K}화 · 이후 주 1회 · 휴재 없음</span></label>
       </div>
     </div>
@@ -1672,7 +1707,7 @@ function renderProd(){
   const lim=SHOWALL?NR:Math.min(NR,Math.max(20,(S.crit||0)+2));
   for(let k=1;k<=lim;k++){
     const E=S.eps[k], BE=B.eps[k];
-    h+=`<tr class="${k<=S.K?"k":""}"><td class="ep">${k}화${epCtl(w,S,k)}</td><td class="lenc"><input class="lenin" data-len="${k}" value="${esc(fmtLen((w.len||{})[k]))}" placeholder="${esc(fmtLen(w.lenDef))}" aria-label="${k}화 길이"></td>`;
+    h+=`<tr class="${k<=S.K?"k":""}"><td class="ep">${k}화${epCtl(w,S,k)}</td><td class="lenc"><input class="lenin" data-len="${k}" value="${esc(fmtLen((w.len||{})[k]))}" placeholder="–" aria-label="${k}화 길이"></td>`;
     S.ST.forEach(s=>{
       const c=E.cells[s.k], bc=BE.cells[s.k];
       if(c.skip){ h+=`<td class="na" title="${esc(s.n)}: 1~${uptoOf(s,w)}화만 진행">—</td>`; return; }
@@ -1759,8 +1794,6 @@ function renderProd(){
     if(v===null){ edit(w.id,[{p:["len",k],del:true}]); return; }
     if(isNaN(v)||v<=0||v>3600){ el.style.borderColor="var(--bad)"; toast("길이는 3:30처럼 분:초로, 또는 3.5처럼 분으로 적어 주세요"); return; }
     edit(w.id,[{p:["len",k],v}]); });
-  const ld=document.querySelector("#v-prod [data-lendef]"); if(ld) ld.onchange=()=>{ const v=parseLen(ld.value);
-    if(v===null){ edit(w.id,[{p:["lenDef"],del:true}]); return; } if(isNaN(v)||v<=0||v>3600){ toast("기본 길이는 3:30처럼 적어 주세요"); return; } edit(w.id,[{p:["lenDef"],v}]); };
   document.querySelectorAll("#v-prod .ck[data-ck]").forEach(b=>b.onclick=(e)=>{e.stopPropagation();toggleDone(w,S,+b.dataset.ck,b.dataset.s);});
   document.querySelectorAll("#v-prod .cl[data-ep]").forEach(b=>b.onclick=(e)=>{e.stopPropagation();openPop(w,S,+b.dataset.ep,b.dataset.s,b);});
 }
