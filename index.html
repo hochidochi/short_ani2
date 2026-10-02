@@ -174,8 +174,15 @@ body.locked main,body.locked .tabs{visibility:hidden}
 .gerr{min-height:18px;font-size:12.5px;color:var(--bad);margin:2px 0 10px}
 .gacts{display:flex;gap:8px;flex-wrap:wrap}
 .who{font-size:12px;color:var(--ink2);margin-bottom:10px;display:flex;align-items:center;gap:6px}
-.simopt{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:flex-end}
-.simopt label{display:flex;flex-direction:column;font-size:11.5px;color:var(--muted);gap:3px}
+.simopt{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:flex-end;padding:10px 14px}
+.simopt label{display:flex;flex-direction:column;font-size:11px;color:var(--muted);gap:2px}
+.simopt .in{min-height:26px;padding:2px 6px;font-size:12.5px}
+.simopt .sog{width:100%;font-size:11.5px;font-weight:700;color:var(--ink2);margin:4px 0 -2px;padding-top:6px;border-top:1px solid var(--line)}
+.simopt .sog:first-child{border-top:0;padding-top:0;margin-top:0}
+.simopt label.hl{color:var(--launch);font-weight:700}
+.simopt label.hl .in{border-color:var(--launch)}
+.dvi{font-size:12px;font-weight:600;color:var(--ink2);margin-left:2px}
+.dv{display:block;font-size:9.5px;font-weight:700;color:var(--ink2);line-height:1}
 .simv{margin:14px 0 0;padding:12px 16px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--launch);border-radius:10px;font-size:15px}
 .simv .hint{font-size:12.5px;margin-top:3px}
 .cal td.srest{background:repeating-linear-gradient(90deg,#E9EAE5 0 3px,#F6F6F3 3px 6px);color:var(--muted);font-size:9.5px;line-height:1.1}
@@ -1390,19 +1397,6 @@ function simOne(w,mod){
   else P=simOpens(S,o,T,rest);
   return {x,S,P,rest};
 }
-/* 전체 제작 속도별 큰 그림: 속도만 바꿔 전체 결과를 요약 (목표 작품 수 계산은 빼고) */
-const SPD_LEVELS=[0,-10,-20,-30];
-function simSummary(){
-  const keep={spd:SIM.o.spdAll,tgt:SIM.o.target};
-  try{
-    return SPD_LEVELS.map(v=>{ SIM.o.spdAll=v; SIM.o.target=0;
-      const R=simCompute().filter(r=>r.P).sort((a,b)=>a.P.L-b.P.L);
-      const yr=(y)=>R.filter(r=>r.P.L.getUTCFullYear()===y).length;
-      const d=R.filter(r=>r.real).map(r=>weeks(r.real,r.P.L)), avgD=d.length?d.reduce((a,b)=>a+b,0)/d.length:0;
-      const lastEnd=R.reduce((a,r)=>!a||r.P.end>a?r.P.end:a,null);
-      return {v,first:R[0],y26:yr(2026),y27:yr(2027),y28:yr(2028),avgD,lastEnd,n:R.length}; });
-  } finally { SIM.o.spdAll=keep.spd; SIM.o.target=keep.tgt; }
-}
 function simCompute(){
   return withSim(()=>{
     const o=SIM.o, out=[];
@@ -1470,17 +1464,8 @@ function renderSim(){
   let h=`<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap">
       <div><p class="lead">시뮬레이션</p><p class="lead-sub">확정된 공정 기준과 작품 일정을 바탕으로 조건만 바꿔 봐요. <b>여기서 바꾼 값은 저장되지 않고 실제 일정에도 영향이 없어요.</b></p></div>
       <button type="button" class="btn" id="simReset">현재 확정 일정으로 되돌리기</button></div>
-    <div class="spdbar"><span class="sog" style="width:auto;margin:0">전체 제작 속도</span>
-      <span class="seg" role="group" aria-label="전체 제작 속도">${SPD_LEVELS.map(v=>`<button type="button" data-spd="${v}" aria-pressed="${(+o.spdAll||0)===v}">${v?`${-v}% 빠르게`:"현재"}</button>`).join("")}</span>
-      <span class="hint">아직 만들지 않은 회차부터 영상 1차 제작 일수가 줄어요 (내부·외부 전체)</span></div>
-    ${(()=>{ const SM=simSummary(), b=SM[0];
-      return `<div class="card" style="margin-bottom:10px;overflow-x:auto"><table class="std spdsum"><thead><tr><th>전체 제작 속도</th><th>첫 오픈</th><th class="r">2026년</th><th class="r">2027년</th><th class="r">2028년</th><th class="r">평균 런칭</th><th>마지막 작품 마지막 회차</th></tr></thead><tbody>${SM.map(r=>`<tr class="${(+o.spdAll||0)===r.v?"on":""}" data-spd="${r.v}">
-        <td><b>${r.v?`${-r.v}% 빠르게`:"현재 속도"}</b></td><td>${r.first?`${ymd(r.first.P.L)} <span class="hint">${esc(simName(r.first.x))}</span>`:"–"}</td>
-        <td class="r">${r.y26}작품</td><td class="r">${r.y27}작품</td><td class="r">${r.y28}작품</td>
-        <td class="r">${r.v===0?`<span class="hint">기준</span>`:`<b style="color:var(--good)">${Math.abs(r.avgD-b.avgD).toFixed(1)}주 당김</b>`}</td>
-        <td>${r.lastEnd?ymd(r.lastEnd):"–"}${r.v&&b.lastEnd&&r.lastEnd?` <span class="hint">(${weeks(r.lastEnd,b.lastEnd)}주 당김)</span>`:""}</td></tr>`).join("")}</tbody></table>
-        <p class="hint" style="margin:8px 0 0">행을 누르면 그 속도로 아래 월간표가 바뀌어요. 다른 조건은 아래 설정 그대로예요.</p></div>`; })()}
     <div class="card simopt">
+      <span class="sog">연재·런칭</span>
       <label>연재 방식${sel("mode",[["regular","정기 연재 (계속)"],["season","시즌제"]],o.mode)}</label>
       ${o.mode==="season"?`<label>시즌당 화수<input class="in n" type="number" min="1" max="100" data-so="seasonN" value="${o.seasonN}"></label>
       <label>시즌 사이 휴재<span style="display:flex;gap:6px;align-items:center">${sel("restAuto",[["1","자동 (제작 지연 휴재가 가장 적은 최소 기간)"],["0","직접 입력"]],o.restAuto?"1":"0")}
@@ -1494,9 +1479,8 @@ function renderSim(){
       <label>더빙 묶음 회차<input class="in n" type="number" min="1" max="20" data-so="batch" value="${o.batch}"></label>
       <label>총 회차 일괄<input class="in n" type="number" min="1" max="300" data-so="total" value="${o.total}" placeholder="작품별"></label>
       <label>성우 일괄${sel("ai",[["keep","작품별 현재대로"],["all","전부 AI 성우"],["human","전부 인간 성우"]],o.ai)}</label>
-    </div>
-    <div class="card simopt" style="margin-top:10px">
       <span class="sog">제작·승인</span>
+      <label class="hl">전체 제작 속도 (모든 작품)${sel("spdAll",[[0,"현재"],[-10,"10% 빠르게"],[-20,"20% 빠르게"],[-30,"30% 빠르게"]],o.spdAll)}</label>
       <label>① 1차 제작 속도 · 내부${sel("spdI",[[-40,"−40% (빠르게)"],[-30,"−30%"],[-20,"−20%"],[-10,"−10%"],[0,"현재"],[10,"+10%"],[20,"+20% (느리게)"],[30,"+30%"]],o.spdI)}</label>
       <label>① 1차 제작 속도 · 외부${sel("spdE",[[-40,"−40% (빠르게)"],[-30,"−30%"],[-20,"−20%"],[-10,"−10%"],[0,"현재"],[10,"+10%"],[20,"+20% (느리게)"],[30,"+30%"]],o.spdE)}</label>
       <label>② 외주 영상 1차 병행${sel("prodPar",[[1,"1회차씩 (현재)"],[2,"2회차 병행"],[3,"3회차 병행"]],o.prodPar)}</label>
@@ -1510,7 +1494,11 @@ function renderSim(){
       <label class="cb"><span><input type="checkbox" data-so="noAuto"${o.noAuto?" checked":""}> 자동 편성 외부 프로젝트 빼고 계산</span></label>
     </div>`;
   // 결론 + KPI
-  const verdict=first?`첫 오픈 <b>${ymd(first.P.L)}</b> (${esc(simName(first.x||first.w))}) · 2026년 ${yr(2026)}작품 · 2027년 ${yr(2027)}작품 · 2028년 ${yr(2028)}작품 오픈`:"포함된 작품이 없어요";
+  const realL=act.map(r=>r.real).filter(Boolean), ry=(y)=>realL.filter(d=>d.getUTCFullYear()===y).length;
+  const dl=act.filter(r=>r.real).map(r=>weeks(r.real,r.P.L)), early=dl.filter(x=>x<0).length, late=dl.filter(x=>x>0).length, avg=dl.length?dl.reduce((a,b)=>a+b,0)/dl.length:0;
+  const yv=(y)=>{const a=yr(y),b=ry(y);return `${y}년 <b>${a}</b>${a!==b?`<span class="dvi">(${a>b?"+":""}${a-b})</span>`:""}`;};
+  const verdict=act.length?`${yv(2026)} · ${yv(2027)} · ${yv(2028)} 작품 오픈
+    <div class="hint" style="font-size:13px;margin-top:4px">확정 일정 대비 ${dl.length}작품 중 <b style="color:var(--good)">${early}작품 당겨짐</b>${late?` · <b style="color:var(--bad)">${late}작품 늦어짐</b>`:""} · 평균 <b>${avg<0?`${(-avg).toFixed(1)}주 당김`:avg>0?`${avg.toFixed(1)}주 늦어짐`:"변화 없음"}</b></div>`:"포함된 작품이 없어요";
   h+=`<div class="simv"><div>${verdict}</div>
     <div class="hint">${o.launchMode==="fixed"?`${ymd(D(o.launch))} 고정 · 휴재 합계 <b style="color:var(--hia)">${hiatus}주</b>`:"모든 작품 휴재 없는 가장 빠른 날"}${weeksOn?` · 공개 중 작품 최소 <b>${weeksOn.min}개</b> (${ymd(weeksOn.at)} 주, ${ymd(weeksOn.s0)} 이후)`:""}${R.some(r=>r.held)?` · 착수일 미정이라 빠진 작품 ${R.filter(r=>r.held).length}개`:""}</div></div>`;
   // ⑥ 목표 공개 작품 수 결과
@@ -1543,7 +1531,8 @@ function renderSim(){
     if(lm>=0&&lm<NM) lb[lm]++; for(let i=0;i<NM;i++) if(c[i].n) on[i]++;
     cells.push(c); act.push({w:{n:a.n,id:"",voice:"human"},x:{line:"ext",voice:"human",n:""},S:a.S,P:a.P,rest:0,real:null,need:a}); });
   const tgt=Math.max(2,+o.target||2), s0i=mi(act.slice().sort((x,y)=>x.P.L-y.P.L)[Math.min(tgt,act.length)-1]?.P.L||D("2099-01-01"));
-  h+=`<tr class="sum first"><th class="rl">신규 오픈</th>`+lb.map((n,i)=>`<td class="c${yb(i)}${n?" hot":" z"}">${n||"–"}</td>`).join("")+`</tr>`;
+  const rb=months.map(()=>0); act.forEach(r=>{ if(r.real){ const i=mi(r.real); if(i>=0&&i<NM) rb[i]++; } });
+  h+=`<tr class="sum first"><th class="rl">신규 오픈 <span class="hint" style="font-weight:400">(작은 숫자: 확정 대비)</span></th>`+lb.map((n,i)=>`<td class="c${yb(i)}${n?" hot":" z"}">${n||"–"}${n!==rb[i]?`<span class="dv">${n>rb[i]?"+":""}${n-rb[i]}</span>`:""}</td>`).join("")+`</tr>`;
   h+=`<tr class="sum last"><th class="rl">공개 중 <span class="hint" style="font-weight:400">(빨강: ${tgt}작품 미만인 달)</span></th>`+on.map((n,i)=>`<td class="c${yb(i)}${n?"":" z"}${n<tgt&&i>=s0i?" low":""}" style="font-size:13px;font-weight:600;color:var(--ink2)">${n||"–"}</td>`).join("")+`</tr>`;
   act.forEach((r,ri)=>{ const P=r.P, w=r.w, d=r.real?weeks(r.real,P.L):null;
     if(r.need){ h+=`<tr class="ln-ext needrow"><th class="rl"><span class="nm" style="cursor:default">${esc(w.n)} <span class="tag warn" style="font-size:10px">⑥ 추가 필요</span></span>
@@ -1583,12 +1572,11 @@ function renderSim(){
   h+=`</tbody></table><p class="hint" style="margin:8px 0 0">착수 대기 작품은 '착수일'에 신규 인력 충원 후 착수 가정일을 넣으면 포함해서 계산돼요. 자동 편성 외부 프로젝트는 끄면 그 작품 없이 계산돼요.</p></div>`;
   $("v-sim").innerHTML=h;
   $("simReset").onclick=()=>{ SIM=null; render(); };
-  document.querySelectorAll("#v-sim [data-spd]").forEach(el=>el.onclick=()=>{ SIM.o.spdAll=+el.dataset.spd; render(); });
   document.querySelectorAll("#v-sim [data-so]").forEach(el=>el.onchange=()=>{ const k=el.dataset.so; let v=el.value;
     if(["seasonN","restW","openK","batch"].includes(k)) v=parseInt(v,10)||SIM_DEF()[k];
     if(k==="restAuto"||k==="rating") v=v==="1";
     if(k==="noAuto") v=el.checked;
-    if(["spdI","spdE","prodPar","sndPar","cap","target","delayW"].includes(k)) v=+v;
+    if(["spdI","spdE","spdAll","prodPar","sndPar","cap","target","delayW"].includes(k)) v=+v;
     if(k==="author"||k==="intAppr") v=v===""?"":clamp(parseInt(v,10)||0,0,60);
     if(k==="total") v=v?parseInt(v,10):"";
     SIM.o[k]=v; render(); });
