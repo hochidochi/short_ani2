@@ -1309,6 +1309,7 @@ function covLine(){
    연재 방식(정기/시즌제)·공개 주기·런칭 오픈 회차·런칭일(자동/고정)·버퍼·등급분류·더빙 묶음·총 회차·AI 성우·
    작품별 착수일·제작 속도·포함 여부를 바꾸면 오픈 일정이 어떻게 되는지 바로 계산 */
 let SIM=null;
+const AVG_LEN=()=>{ const v=[]; WORKS.forEach(w=>{ const L=w.len||{}; Object.values(L).forEach(x=>{ if(+x>0) v.push(+x); }); }); return v.length?v.reduce((a,b)=>a+b,0)/v.length:null; };   // 전체 작품 회차 길이 평균(초)
 const simName=(w)=>w&&lineOf(w)==="ext"?"미정":(w&&w.n||"");   // 시뮬레이션에서는 외부 작품 이름을 '미정'으로
 const SIM_DEF=()=>({mode:"regular",seasonN:10,restW:4,restAuto:true,cad:1,openK:3,launchMode:"auto",launch:"2026-12-21",
   buf:0,rating:false,batch:5,total:20,ai:"keep",
@@ -1319,7 +1320,7 @@ const SIM_DEF=()=>({mode:"regular",seasonN:10,restW:4,restAuto:true,cad:1,openK:
   cap:0,                  // ⑤ 월별 신규 런칭 상한 (0 = 제한 없음)
   target:0,noAuto:false,  // ⑥ 최소 공개 작품 수 목표 (0 = 끔) · 자동 편성 외부 프로젝트 빼고 계산
   delayW:0,               // ⑦ 착수 전 작품 착수 지연 (주)
-  spdAll:0});             // 전체 제작 속도 (%) — 아직 안 만든 회차부터 적용
+  lenCut:0});             // 회차 길이(컷 분량) 줄이기 (%) — 아직 안 만든 회차부터 영상 제작 일수가 비례해서 줄어듦
 function simInit(){
   const rows={};
   WORKS.forEach(w=>{ const h=holdOf(w);
@@ -1335,6 +1336,7 @@ function withSim(fn){
     const c=clone(CONF); c.lockBD=(+CONF.lockBD||0)+(+o.buf||0);
     const setAll=(k,v)=>{ const st=c.stages.find(x=>x.k===k); if(st&&v!==""&&v!=null&&!isNaN(+v)) st.v=Object.fromEntries(Object.entries(st.v).map(([kk,vv])=>[kk,+vv>0?clamp(+v,0,60):0])); };
     setAll("author",o.author); setAll("intAppr",o.intAppr);
+    if(+o.lenCut){ const pf=c.stages.find(x=>x.k==="prodF"); if(pf) pf.v=Object.fromEntries(Object.entries(pf.v).map(([k,v])=>[k,+v>0?Math.max(1,Math.round(+v*(1+(+o.lenCut)/100))):0])); }   // 영상 최종 수정도 길이에 비례
     if(o.rating){ const r=c.stages.find(x=>x.k==="rating"); if(r&&!Object.values(r.v).some(v=>+v>0)) r.v={ih:15,ia:15,eh:15,ea:15}; }
     CONF=c; return fn();
   } finally { OPEN_K=keep.OPEN_K; BATCH=keep.BATCH; CAD_D=keep.CAD_D; CONF=keep.CONF; PROD_LINES=keep.PROD_LINES; SOUND_LINES=keep.SOUND_LINES; }
@@ -1345,8 +1347,8 @@ function simWork(w){
   if(r.voice==="human"||r.voice==="ai") x.voice=r.voice; else if(o.ai==="all") x.voice="ai"; else if(o.ai==="human") x.voice="human";
   if(r.start) x.start=r.start;
   if(r.rate) x.rate=+r.rate;
-  else { const pct=lineOf(x)==="ext"?+o.spdE||0:+o.spdI||0, all=+o.spdAll||0;   // ① 라인별 + 전체 속도 (이미 만든 회차는 그대로)
-    if(pct||all) x.rate=Math.max(1,Math.round((+x.rate||defRate(x))*(1+pct/100)*(1+all/100))); }
+  else { const pct=lineOf(x)==="ext"?+o.spdE||0:+o.spdI||0, cut=+o.lenCut||0;   // ① 라인별 속도 × 회차 길이 (이미 만든 회차는 그대로)
+    if(pct||cut) x.rate=Math.max(1,Math.round((+x.rate||defRate(x))*(1+pct/100)*(1+cut/100))); }
   const tot=r.total||o.total; if(tot) x.total=clamp(+tot,1,300);
   if(r.hire){ x.pauses=(x.pauses||[]).filter(p=>!isHire(p)); x.start=r.hire; }   // 착수 대기 작품: 가정 착수일
   if(+o.batch!==5) x.b1=clamp(+o.batch,1,20);   // 묶음 회차를 바꿨을 때만 첫 묶음도 같이
@@ -1480,7 +1482,7 @@ function renderSim(){
       <label>총 회차 일괄<input class="in n" type="number" min="1" max="300" data-so="total" value="${o.total}" placeholder="작품별"></label>
       <label>성우 일괄${sel("ai",[["keep","작품별 현재대로"],["all","전부 AI 성우"],["human","전부 인간 성우"]],o.ai)}</label>
       <span class="sog">제작·승인</span>
-      <label class="hl">전체 제작 속도 (모든 작품)${sel("spdAll",[[0,"현재"],[-10,"10% 빠르게"],[-20,"20% 빠르게"],[-30,"30% 빠르게"]],o.spdAll)}</label>
+      <label class="hl">회차 길이 (컷 분량, 모든 작품)${sel("lenCut",[[0,`현재${AVG_LEN()?` (평균 ${fmtLen(AVG_LEN())})`:""}`],[-10,`10% 짧게${AVG_LEN()?` → ${fmtLen(AVG_LEN()*0.9)}`:""}`],[-20,`20% 짧게${AVG_LEN()?` → ${fmtLen(AVG_LEN()*0.8)}`:""}`],[-30,`30% 짧게${AVG_LEN()?` → ${fmtLen(AVG_LEN()*0.7)}`:""}`]],o.lenCut)}</label>
       <label>① 1차 제작 속도 · 내부${sel("spdI",[[-40,"−40% (빠르게)"],[-30,"−30%"],[-20,"−20%"],[-10,"−10%"],[0,"현재"],[10,"+10%"],[20,"+20% (느리게)"],[30,"+30%"]],o.spdI)}</label>
       <label>① 1차 제작 속도 · 외부${sel("spdE",[[-40,"−40% (빠르게)"],[-30,"−30%"],[-20,"−20%"],[-10,"−10%"],[0,"현재"],[10,"+10%"],[20,"+20% (느리게)"],[30,"+30%"]],o.spdE)}</label>
       <label>② 외주 영상 1차 병행${sel("prodPar",[[1,"1회차씩 (현재)"],[2,"2회차 병행"],[3,"3회차 병행"]],o.prodPar)}</label>
@@ -1498,6 +1500,7 @@ function renderSim(){
   const dl=act.filter(r=>r.real).map(r=>weeks(r.real,r.P.L)), early=dl.filter(x=>x<0).length, late=dl.filter(x=>x>0).length, avg=dl.length?dl.reduce((a,b)=>a+b,0)/dl.length:0;
   const yv=(y)=>{const a=yr(y),b=ry(y);return `${y}년 <b>${a}</b>${a!==b?`<span class="dvi">(${a>b?"+":""}${a-b})</span>`:""}`;};
   const verdict=act.length?`${yv(2026)} · ${yv(2027)} · ${yv(2028)} 작품 오픈
+    ${+o.lenCut?`<div class="hint" style="font-size:13px;margin-top:4px">회차 길이 <b>${-o.lenCut}% 짧게</b>${AVG_LEN()?` (평균 ${fmtLen(AVG_LEN())} → ${fmtLen(AVG_LEN()*(1+o.lenCut/100))})`:""} → 아직 안 만든 회차의 영상 1차 제작·최종 수정 일수가 같은 비율로 줄어요</div>`:""}
     <div class="hint" style="font-size:13px;margin-top:4px">확정 일정 대비 ${dl.length}작품 중 <b style="color:var(--good)">${early}작품 당겨짐</b>${late?` · <b style="color:var(--bad)">${late}작품 늦어짐</b>`:""} · 평균 <b>${avg<0?`${(-avg).toFixed(1)}주 당김`:avg>0?`${avg.toFixed(1)}주 늦어짐`:"변화 없음"}</b></div>`:"포함된 작품이 없어요";
   h+=`<div class="simv"><div>${verdict}</div>
     <div class="hint">${o.launchMode==="fixed"?`${ymd(D(o.launch))} 고정 · 휴재 합계 <b style="color:var(--hia)">${hiatus}주</b>`:"모든 작품 휴재 없는 가장 빠른 날"}${weeksOn?` · 공개 중 작품 최소 <b>${weeksOn.min}개</b> (${ymd(weeksOn.at)} 주, ${ymd(weeksOn.s0)} 이후)`:""}${R.some(r=>r.held)?` · 착수일 미정이라 빠진 작품 ${R.filter(r=>r.held).length}개`:""}</div></div>`;
@@ -1576,7 +1579,7 @@ function renderSim(){
     if(["seasonN","restW","openK","batch"].includes(k)) v=parseInt(v,10)||SIM_DEF()[k];
     if(k==="restAuto"||k==="rating") v=v==="1";
     if(k==="noAuto") v=el.checked;
-    if(["spdI","spdE","spdAll","prodPar","sndPar","cap","target","delayW"].includes(k)) v=+v;
+    if(["spdI","spdE","lenCut","prodPar","sndPar","cap","target","delayW"].includes(k)) v=+v;
     if(k==="author"||k==="intAppr") v=v===""?"":clamp(parseInt(v,10)||0,0,60);
     if(k==="total") v=v?parseInt(v,10):"";
     SIM.o[k]=v; render(); });
