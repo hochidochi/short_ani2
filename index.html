@@ -185,6 +185,10 @@ table.simt td{white-space:nowrap}
 .simopt label.cb{justify-content:flex-end}
 .simopt label.cb span{display:flex;gap:6px;align-items:center;color:var(--ink2);font-size:12.5px;min-height:30px}
 .cal tr.needrow th.rl{background:#FFF8EC}
+table.eg thead th.lenh,table.eg td.lenc{min-width:58px;background:#FBFBF9}
+.lenin{width:52px;border:1px solid transparent;border-radius:5px;background:transparent;font:inherit;font-size:12.5px;font-weight:600;padding:4px 5px;text-align:center}
+.lenin:hover{border-color:var(--line2)} .lenin:focus{border-color:var(--launch);background:#fff;outline:0}
+.lenin::placeholder{color:var(--line2);font-weight:400}
 .cal .far{color:var(--ink2);font-weight:700;font-size:14px}
 .legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12px;color:var(--ink2);margin:10px 0 0}
 .legend i{display:inline-block;width:18px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:6px}
@@ -965,6 +969,18 @@ function staffOrder(){
 const staffRank=(w)=>staffOrder().indexOf(w.id);
 const isHeld=(w)=>!!holdOf(w);   // 재개일 없이 중단된 작품 — 런칭 미정, 연재 편성에서 제외
 const ACT=()=>WORKS.filter(w=>!isHeld(w));
+/* 회차별 러닝타임 (초 단위 저장) — 입력은 "3:30" 또는 분 소수 "3.5" */
+const parseLen=(v)=>{ v=String(v||"").trim(); if(!v) return null; let m=v.match(/^(\d+):(\d{1,2})$/); if(m) return (+m[1])*60+(+m[2]);
+  m=v.match(/^(\d+(?:\.\d+)?)$/); if(m) return Math.round(parseFloat(m[1])*60); return NaN; };
+const fmtLen=(sec)=>sec==null||isNaN(sec)?"":`${Math.floor(sec/60)}:${String(Math.round(sec%60)).padStart(2,"0")}`;
+function lenStats(w){
+  const N=clamp(+w.total||1,1,300), L=w.len||{}, vals=[];
+  for(let k=1;k<=N;k++) if(L[k]!=null) vals.push(+L[k]);
+  const avg=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null;
+  const def=w.lenDef!=null?+w.lenDef:(avg!=null?avg:null);   // 미입력 회차 추정값: 기본 길이 → 없으면 입력 평균
+  const est=def!=null?vals.reduce((a,b)=>a+b,0)+def*(N-vals.length):null;
+  return {N,n:vals.length,avg,def,sum:vals.reduce((a,b)=>a+b,0),est,min:vals.length?Math.min(...vals):null,max:vals.length?Math.max(...vals):null};
+}
 /* 연령 등급 (작품 정보) */
 const AGE_OPTS=[["","미정"],["all","전체 이용가"],["12","12세 이용가"],["15","15세 이용가"],["18","18세 이용가"]];
 const ageBadge=(w)=>w.age?`<span class="age a${w.age}" title="${AGE_OPTS.find(a=>a[0]===w.age)[1]}">${w.age==="all"?"전체":w.age}</span>`:"";
@@ -1589,6 +1605,9 @@ function openResume(w,k,anchor){
     const list=(w.pauses||[]).filter(x=>x.ep!==k); list.push({ep:k,from:p.from||key(TODAY),resume:key(snapBD(D(v)))});
     edit(w.id,[{p:["pauses"],v:list}]); closePop(); };
 }
+function lenStatHtml(w){ const L=lenStats(w);
+  return `<div class="stat"><div class="sl">평균 길이 (${L.n}/${L.N}화 입력)</div><div class="sv">${L.avg!=null?fmtLen(L.avg):"–"}${L.n?`<small style="color:var(--ink2)">최소 ${fmtLen(L.min)} · 최대 ${fmtLen(L.max)}</small>`:""}</div></div>
+    <div class="stat"><div class="sl">총 러닝타임 ${L.n<L.N&&L.est!=null?"(미입력은 추정)":""}</div><div class="sv">${L.est!=null?fmtLen(L.est):L.n?fmtLen(L.sum):"–"}${L.est!=null||L.n?`<small style="color:var(--ink2)">${((L.est!=null?L.est:L.sum)/60).toFixed(2)}분 · 초 단위 합산</small>`:""}</div></div>`; }
 function renderProd(){
   if(!WORKS.length){ $("v-prod").innerHTML=`<div class="card"><p>등록된 작품이 없습니다.</p><button type="button" class="btn pri" id="addW">+ 작품 추가</button></div>`; $("addW").onclick=(e)=>{e.stopPropagation();addWork(e);}; return; }
   if(!WORKS.some(w=>w.id===SEL)) SEL=WORKS[0].id;
@@ -1596,7 +1615,7 @@ function renderProd(){
   let h=`<div class="prodlay"><nav class="wlist" aria-label="작품 목록">`;
   WORKS.forEach(x=>{const s=schedule(x);
     h+=`<button type="button" class="wi" data-w="${x.id}" aria-current="${x.id===SEL}"><b>${esc(x.n)}${ageBadge(x)}</b>
-      ${x.tbd||pauseOf(x)?`<span class="ws">${tbdTag(x,1)}${pauseOf(x)?`<span class="tag pzt" style="font-size:10px;padding:0 5px">${esc(pauseShort(x))}</span>`:""}</span>`:""}<span class="ws"><span class="lnd ${lineOf(x)}"></span>${s.held?`<span style="font-weight:600">런칭 미정</span>`:`${ymd(s.L).slice(2)} 런칭`}${x.voice==="ai"?" · AI 성우":""}</span></button>`;});
+      ${x.tbd||pauseOf(x)?`<span class="ws">${tbdTag(x,1)}${pauseOf(x)?`<span class="tag pzt" style="font-size:10px;padding:0 5px">${esc(pauseShort(x))}</span>`:""}</span>`:""}<span class="ws"><span class="lnd ${lineOf(x)}"></span>${(()=>{const L=lenStats(x);return L.avg!=null?`평균 ${fmtLen(L.avg)} · `:"";})()}${s.held?`<span style="font-weight:600">런칭 미정</span>`:`${ymd(s.L).slice(2)} 런칭`}${x.voice==="ai"?" · AI 성우":""}</span></button>`;});
   h+=`<button type="button" class="btn add" id="addW">+ 작품 추가</button></nav><div>`;
 
   const f=(lab,fk,type,extra="")=>{
@@ -1623,15 +1642,18 @@ function renderProd(){
         <label>런칭일<span style="display:flex;gap:6px;align-items:center">
           <select class="in" data-sel="lauto"><option value="1"${w.launchAuto?" selected":""}>가장 빠른 날 (자동)</option><option value="0"${w.launchAuto?"":" selected"}>목표일 이후로</option></select>
           ${w.launchAuto?`<span class="in" style="border-color:transparent;padding-left:0;color:var(--ink2)">${S.L?ymd(S.L):"미정"}</span>`:`<input class="in t" type="date" data-f="launch" value="${esc(w.launch||"")}" aria-label="목표 런칭일">`}</span></label>${f("총 회차","total","number",`min="1" max="300"`)}
+        <label>기본 길이 (회차당)<input class="in n" style="width:72px" data-lendef="1" value="${esc(fmtLen(w.lenDef))}" placeholder="3:30" title="길이를 아직 안 적은 회차를 이 길이로 추정해요"></label>
         <label>오픈 방식<span class="in" style="border-color:transparent;padding-left:0;color:var(--ink2)">런칭 ${OPEN_K}화 · 이후 주 1회 · 휴재 없음</span></label>
       </div>
     </div>
     <div class="stats">${S.held?`
       <div class="stat"><div class="sl">예상 런칭</div><div class="sv">미정 <small style="color:var(--ink2)">${S.held.ep}화부터 제작 중단 · 재개 미정</small></div></div>
+      ${lenStatHtml(w)}
       <div class="stat"><div class="sl">적용 공정</div><div class="sv" style="font-size:14px">${VAR_LABEL[VARIANT(w)]}</div></div>`:`
       <div class="stat"><div class="sl">예상 런칭 (휴재 없는 최단)</div><div class="sv">${ymd(S.L)} (${WD[S.L.getUTCDay()]})</div></div>
       <div class="stat"><div class="sl">런칭일을 정하는 조건</div><div class="sv">${S.critGate?`${esc(S.critGate.s.n)} <small style="color:var(--ink2)">완료 ${ymd(S.critGate.e)} → 런칭 ${ymd(S.L)}</small>`:`${S.crit}화 <small style="color:var(--ink2)">최종본 ${ymd(CE.ready)} → 오픈 ${ymd(CE.open)}</small>`}</div></div>
       <div class="stat"><div class="sl">완결 (${S.N}화)</div><div class="sv">${ymd(S.end)}</div></div>
+      ${lenStatHtml(w)}
       <div class="stat"><div class="sl">적용 공정</div><div class="sv" style="font-size:14px">${VAR_LABEL[VARIANT(w)]}</div></div>`}
     </div>
   </div>`;
@@ -1643,14 +1665,14 @@ function renderProd(){
       <span><b style="color:var(--bad)">+n</b> 기본 공정보다 늦어진 영업일</span>
       <span style="background:#F4F3EC;padding:0 6px;border-radius:4px">음영 열 = ${BATCH}화 묶음 · 작품 1회 단계</span>
     </div></div>
-    <div class="gridwrap"><table class="eg"><thead><tr><th class="ep">회차</th>`;
+    <div class="gridwrap"><table class="eg"><thead><tr><th class="ep">회차</th><th class="lenh">길이<small>분:초</small></th>`;
   S.ST.forEach(s=>h+=`<th class="${s.sc!=="ep"&&s.k!=="prod1"?"dubh":""}" title="${esc(s.n)} · ${SC_LABEL[s.k==="prod1"?"ep":s.sc]}${s.sc==="ep"&&uptoOf(s,w)>0?` · 1~${uptoOf(s,w)}화만`:""}${s.sc==="work"?(s.gate==="open"?" · 런칭 전까지 완료":" · 다음 단계가 기다림"):""}">${esc(labelOf(s,w))}${s.sc==="ep"&&uptoOf(s,w)>0?` <span class="upto">1~${uptoOf(s,w)}화</span>`:""}${concOf(s,w)&&(s.conc==="ext"||s.conc==="author")?` <span class="upto" title="1~3화는 작가 승인과 동시에 진행(추가 기간 없음) · 4화부터 ${durOf(s,w)}일 따로">1~3화 병렬</span>`:""}${s.par?` <span class="upto" title="다음 단계와 동시에 진행 — 자막 최종 영상본 전까지만 끝나면 됨">병행</span>`:""}<small>${esc(teamOf(s,w))}</small></th>`);
   h+=`<th class="rd">최종본 완료<small>오픈 ${CONF.lockBD}영업일 전까지</small></th><th class="op">오픈일<small>${S.held?"런칭 미정":`매주 ${WD[S.L.getUTCDay()]}요일`}</small></th></tr></thead><tbody>`;
   const NR=S.held?(S.N0||0):S.N;   // 실제 계산된 회차 수
   const lim=SHOWALL?NR:Math.min(NR,Math.max(20,(S.crit||0)+2));
   for(let k=1;k<=lim;k++){
     const E=S.eps[k], BE=B.eps[k];
-    h+=`<tr class="${k<=S.K?"k":""}"><td class="ep">${k}화${epCtl(w,S,k)}</td>`;
+    h+=`<tr class="${k<=S.K?"k":""}"><td class="ep">${k}화${epCtl(w,S,k)}</td><td class="lenc"><input class="lenin" data-len="${k}" value="${esc(fmtLen((w.len||{})[k]))}" placeholder="${esc(fmtLen(w.lenDef))}" aria-label="${k}화 길이"></td>`;
     S.ST.forEach(s=>{
       const c=E.cells[s.k], bc=BE.cells[s.k];
       if(c.skip){ h+=`<td class="na" title="${esc(s.n)}: 1~${uptoOf(s,w)}화만 진행">—</td>`; return; }
@@ -1682,7 +1704,7 @@ function renderProd(){
   }
   if(S.held){   // 중단된 회차부터는 계산하지 않음
     const p=S.held;
-    h+=`<tr class="pzrow"><td class="ep">${p.ep}~${S.N}화</td><td colspan="${S.ST.length+2}">
+    h+=`<tr class="pzrow"><td class="ep">${p.ep}~${S.N}화</td><td colspan="${S.ST.length+3}">
       <span class="pzl2">${isHire(p)?"⏳ 착수 대기 — 신규 인력이 충원되면 착수 (기존 인력은 현재 작품 계속 연재)":`⏸ ${ymd(D(p.from))}부터 제작 중단 · 재개 미정`}</span>
       <button type="button" class="btn pri" data-resume="${p.ep}" style="padding:3px 10px;margin-left:8px">${isHire(p)?"▶ 착수일 정하기":"▶ 활성화 (재개일 정하기)"}</button>
       ${isHire(p)?"":`<button type="button" class="btn" data-unpause="${p.ep}" style="padding:3px 10px;margin-left:4px">중단 취소</button>`}</td></tr>`;
@@ -1733,6 +1755,12 @@ function renderProd(){
   document.querySelectorAll("#v-prod [data-unpause]").forEach(b=>b.onclick=(e)=>{e.stopPropagation();
     if(!confirm("중단 표시를 없애고 원래 일정대로 계산할까요?")) return;
     edit(w.id,[{p:["pauses"],v:(w.pauses||[]).filter(p=>p.ep!==+b.dataset.unpause)}]); });
+  document.querySelectorAll("#v-prod [data-len]").forEach(el=>el.onchange=()=>{ const v=parseLen(el.value), k=el.dataset.len;
+    if(v===null){ edit(w.id,[{p:["len",k],del:true}]); return; }
+    if(isNaN(v)||v<=0||v>3600){ el.style.borderColor="var(--bad)"; toast("길이는 3:30처럼 분:초로, 또는 3.5처럼 분으로 적어 주세요"); return; }
+    edit(w.id,[{p:["len",k],v}]); });
+  const ld=document.querySelector("#v-prod [data-lendef]"); if(ld) ld.onchange=()=>{ const v=parseLen(ld.value);
+    if(v===null){ edit(w.id,[{p:["lenDef"],del:true}]); return; } if(isNaN(v)||v<=0||v>3600){ toast("기본 길이는 3:30처럼 적어 주세요"); return; } edit(w.id,[{p:["lenDef"],v}]); };
   document.querySelectorAll("#v-prod .ck[data-ck]").forEach(b=>b.onclick=(e)=>{e.stopPropagation();toggleDone(w,S,+b.dataset.ck,b.dataset.s);});
   document.querySelectorAll("#v-prod .cl[data-ep]").forEach(b=>b.onclick=(e)=>{e.stopPropagation();openPop(w,S,+b.dataset.ep,b.dataset.s,b);});
 }
